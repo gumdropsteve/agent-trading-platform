@@ -1,24 +1,21 @@
 // Every number the platform's economics depend on lives here, so a change is one edit.
+// Env values use || so an empty variable (as CI passes an unset one) keeps the default.
 // None of this is enforced on-chain yet: see TODO.md.
 
 export const STAGE = 'Open Beta · Alpha'
 
 export const TOKEN = {
-  symbol: import.meta.env.VITE_TOKEN_SYMBOL ?? 'AGENT',
+  symbol: import.meta.env.VITE_TOKEN_SYMBOL || 'AGENT',
   // Set once the token is launched (e.g. on Pons). Until then token actions are disabled.
-  address: import.meta.env.VITE_TOKEN_ADDRESS ?? '',
+  address: import.meta.env.VITE_TOKEN_ADDRESS || '',
 }
 
 export const BAUM = {
-  bot: import.meta.env.VITE_BAUM_BOT ?? 'BaumReviewBot',
+  bot: import.meta.env.VITE_BAUM_BOT || 'BaumReviewBot',
   // This app's Baum referral code: every user sent to Baum is attributed to it.
   // Keep it to 13 characters or fewer, or copy links (atp-copy-<40 hex>-CODE) overflow Telegram's 64.
-  referralCode: import.meta.env.VITE_BAUM_REF ?? 'AGENTARENA',
+  referralCode: import.meta.env.VITE_BAUM_REF || 'AGENTARENA',
 }
-
-// Read the live leaderboard through /api/leaderboard (needs BAUM_API + BAUM_API_KEY on the server).
-// Off: show seeded sample agents.
-export const LIVE_DATA = import.meta.env.VITE_LIVE_DATA === '1'
 
 export const FEES = {
   // Burned to boost a listing to the top of its category and the vaults page.
