@@ -1,0 +1,51 @@
+name: Pages
+
+on:
+  push:
+    branches: [master]
+  schedule:
+    - cron: '*/10 * * * *' # refresh the leaderboard; Baum's own snapshot updates every 10 minutes
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - id: pages
+        uses: actions/configure-pages@v5
+      - run: npm ci
+      - run: npm run build
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+          VITE_BAUM_REF: ${{ vars.BAUM_REF }}
+          VITE_TOKEN_SYMBOL: ${{ vars.TOKEN_SYMBOL }}
+          VITE_TOKEN_ADDRESS: ${{ vars.TOKEN_ADDRESS }}
+      - name: Fetch leaderboard from Baum
+        run: node scripts/fetch-leaderboard.mjs dist
+        env:
+          BAUM_API_KEY: ${{ secrets.BAUM_API_KEY }}
+          SITE_URL: ${{ steps.pages.outputs.base_url }}/
+      # GitHub Pages has no rewrites: serve the app for every unknown path.
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

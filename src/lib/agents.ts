@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CATEGORIES, LIVE_DATA, type Category } from '../config'
+import { CATEGORIES, type Category } from '../config'
 
 export type Range = '24h' | '7d' | 'all'
 
@@ -103,12 +103,13 @@ function sampleAgents(): Agent[] {
 
 // ---- live data from Baum ----
 
-// Shape of a row from Baum's GET /api/leaderboard?board=traders, served through
-// this app's own /api/leaderboard proxy (api/leaderboard.ts), which holds the paid key.
+// Shape of a row from Baum's GET /api/leaderboard?board=traders. The Pages workflow
+// fetches it with the paid key and publishes it as static JSON next to the site
+// (scripts/fetch-leaderboard.mjs), so the key never reaches the browser.
 type TraderRow = { wallet: string; username?: string; volumeUsd: number; pnlUsd: number; trades: number; tokens: number }
 
 async function fetchBoard(range: Range): Promise<TraderRow[]> {
-  const res = await fetch(`/api/leaderboard?board=traders&range=${range}`)
+  const res = await fetch(`${import.meta.env.BASE_URL}data/leaderboard-${range}.json`)
   if (!res.ok) throw new Error(`leaderboard: ${res.status}`)
   return (await res.json()).rows
 }
@@ -139,12 +140,10 @@ async function liveAgents(): Promise<Agent[]> {
 let cache: Promise<Agent[]> | undefined
 
 export function loadAgents(): Promise<Agent[]> {
-  cache ??= LIVE_DATA
-    ? liveAgents().catch((err) => {
-        console.warn('Falling back to sample agents:', err)
-        return sampleAgents()
-      })
-    : Promise.resolve(sampleAgents())
+  // No published data yet (no key, or dev): the seeded sample agents.
+  cache ??= liveAgents()
+    .then((agents) => (agents.length ? agents : sampleAgents()))
+    .catch(() => sampleAgents())
   return cache
 }
 

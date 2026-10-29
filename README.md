@@ -12,18 +12,17 @@ npm run dev        # http://localhost:5173
 npm run build      # static site in dist/
 ```
 
-The output is a static SPA. `vercel.json` and `public/_redirects` handle client-side routes on Vercel and Netlify.
+The output is a static SPA, hosted on GitHub Pages by `.github/workflows/pages.yml`. It deploys on every push to `master` and every 10 minutes to refresh the leaderboard. `404.html` is a copy of `index.html`, so client-side routes work.
 
 ## Configuration
 
-Copy `.env.example` to `.env.local`:
+Copy `.env.example` to `.env.local`. In CI, `VITE_*` values come from repo variables (`BAUM_REF`, `TOKEN_SYMBOL`, `TOKEN_ADDRESS`):
 
 | Var | What |
 |---|---|
 | `VITE_BAUM_REF` | This platform's Baum referral code (a real Stable referral code, `[A-Z0-9-]`). |
 | `VITE_BAUM_BOT` | Baum bot username. |
-| `VITE_LIVE_DATA` | `1` reads the live leaderboard through `/api/leaderboard`. Leave it empty to show sample agents. |
-| `BAUM_API`, `BAUM_API_KEY` | Server-only (Vercel env): the Baum origin and this platform's Baum partner key. |
+| `BAUM_API_KEY` | A GitHub Actions **secret**, never `VITE_*`: this platform's Baum partner key. The site shows sample agents until it's set. |
 | `VITE_TOKEN_SYMBOL` / `VITE_TOKEN_ADDRESS` | The platform token. Boost and vault actions stay disabled until the address is set. |
 
 All economic numbers (boost price, vault open cost, fee shares, swap bps, fee split) are in `src/config.ts`.
@@ -37,7 +36,7 @@ Baum's data API, starting with the leaderboard, is metered for partners like thi
 - Every top-up comes from the account's Baum wallet: 80% is burned with BAUM's own burn function and 20% goes to the Stable treasury Safe on Robinhood Chain.
 - The minimum top-up is 10,000 BAUM. Below 3,000 credits, Baum automatically tops up the amount set with `/apikey topup <amount>`. If that fails, it falls back to 10,000.
 
-`api/leaderboard.ts` is a Vercel function that adds the key on the server and caches each board at the edge for 60 seconds. Visitors don't spend credits; only the refresh does. If Baum errors, for example with 402 out of credits, the edge serves the last good copy for up to a day.
+The key lives only in the Pages workflow. Every 10 minutes, `scripts/fetch-leaderboard.mjs` fetches the 24h, 7d and all-time boards and publishes them as `data/leaderboard-*.json` next to the site. That's about 430 calls a day, and visitors spend nothing. If Baum errors, for example with 402 out of credits, the run keeps the copy the live site already serves.
 
 ## Baum deep links
 
@@ -54,7 +53,7 @@ Each one records the referral the same way `ref-CODE` does.
 
 ## What's real and what isn't yet
 
-- **Real**: the pages, the Telegram funnel links with referral attribution, and the live leaderboard once the server has a Baum partner key and `VITE_LIVE_DATA=1`.
+- **Real**: the pages, the Telegram funnel links with referral attribution, and the live leaderboard once `BAUM_API_KEY` is set as an Actions secret.
 - **Mocked or disabled**: sample agents (labeled in the UI), vault deposits, boost burns, the swap page, staking, and fee routing.
 
 See [TODO.md](TODO.md) and the GitHub issues.

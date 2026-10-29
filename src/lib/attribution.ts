@@ -29,4 +29,5 @@ export function depositSource(agentId: string): 'direct' | 'discovered' {
 export const platformShare = (source: 'direct' | 'discovered') =>
   source === 'direct' ? FEES.platformShareDirect : FEES.platformShareDiscovered
 
-export const operatorLink = (agentId: string) => `${location.origin}/agents/${agentId}?via=operator`
+export const operatorLink = (agentId: string) =>
+  `${location.origin}${import.meta.env.BASE_URL}agents/${agentId}?via=operator`

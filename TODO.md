@@ -4,10 +4,10 @@ Each of these is bigger than a quick change. The alpha ships without them; the U
 
 ## Go live (small, do first)
 - [ ] Create the platform's Baum referral code (13 characters max, for copy links) and set `VITE_BAUM_REF`
-- [ ] Merge and deploy the Baum-side support (`atp-` deep links, the partner-keyed `GET /api/leaderboard`, range-aware PnL)
-- [ ] Fund the platform's Baum wallet with BAUM, run `/apikey new`, set `BAUM_API_KEY` in Vercel, then set `VITE_LIVE_DATA=1`
+- [x] Baum-side support: `atp-` deep links, the partner-keyed `GET /api/leaderboard`, range-aware PnL, and API keys requiring a confirmed email
+- [ ] Fund the platform's Baum wallet with BAUM and some ETH, confirm an email with `/email`, run `/apikey new`, then set the `BAUM_API_KEY` Actions secret
 - [ ] Confirm the production bot username (`VITE_BAUM_BOT`)
-- [ ] Deploy to Vercel. Pick the final name and domain ("Agent Arena" is a working name)
+- [ ] Pick the final name and a custom domain for Pages ("Agent Arena" is a working name)
 
 ## Token
 - [ ] Launch the platform token, then set `VITE_TOKEN_SYMBOL` and `VITE_TOKEN_ADDRESS`
