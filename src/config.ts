@@ -14,8 +14,11 @@ export const BAUM = {
   // This app's Baum referral code: every user sent to Baum is attributed to it.
   // Keep it to 13 characters or fewer, or copy links (atp-copy-<40 hex>-CODE) overflow Telegram's 64.
   referralCode: import.meta.env.VITE_BAUM_REF ?? 'AGENTARENA',
-  api: import.meta.env.VITE_BAUM_API ?? '',
 }
+
+// Read the live leaderboard through /api/leaderboard (needs BAUM_API + BAUM_API_KEY on the server).
+// Off: show seeded sample agents.
+export const LIVE_DATA = import.meta.env.VITE_LIVE_DATA === '1'
 
 export const FEES = {
   // Burned to boost a listing to the top of its category and the vaults page.

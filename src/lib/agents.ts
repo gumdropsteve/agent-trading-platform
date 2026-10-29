@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BAUM, CATEGORIES, type Category } from '../config'
+import { CATEGORIES, LIVE_DATA, type Category } from '../config'
 
 export type Range = '24h' | '7d' | 'all'
 
@@ -103,43 +103,43 @@ function sampleAgents(): Agent[] {
 
 // ---- live data from Baum ----
 
-// Shape of a row from Baum's GET /api/leaderboard?board=traders.
+// Shape of a row from Baum's GET /api/leaderboard?board=traders, served through
+// this app's own /api/leaderboard proxy (api/leaderboard.ts), which holds the paid key.
 type TraderRow = { wallet: string; username?: string; volumeUsd: number; pnlUsd: number; trades: number; tokens: number }
 
 async function fetchBoard(range: Range): Promise<TraderRow[]> {
-  const res = await fetch(`${BAUM.api}/api/leaderboard?board=traders&range=${range}`)
-  if (!res.ok) throw new Error(`Baum leaderboard: ${res.status}`)
+  const res = await fetch(`/api/leaderboard?board=traders&range=${range}`)
+  if (!res.ok) throw new Error(`leaderboard: ${res.status}`)
   return (await res.json()).rows
 }
 
 async function liveAgents(): Promise<Agent[]> {
-  // Baum's pnlUsd is all-time whatever the range, so every range shows all-time PnL
-  // until Baum reports per-range PnL. Return % uses volume as the base until it reports equity.
-  const all = await fetchBoard('all')
-  return all.map((row) => {
-    const ret = row.volumeUsd ? row.pnlUsd / row.volumeUsd : 0
-    return {
-      id: row.wallet,
-      name: row.username ? `@${row.username}` : `${row.wallet.slice(0, 6)}…${row.wallet.slice(-4)}`,
-      owner: row.username ? `@${row.username}` : '',
-      category: 'Discretionary',
-      description: `Trades through Baum. ${row.tokens} tokens traded.`,
-      pnlUsd: { '24h': row.pnlUsd, '7d': row.pnlUsd, all: row.pnlUsd },
-      returnPct: { '24h': ret, '7d': ret, all: ret },
-      volumeUsd: row.volumeUsd,
-      trades: row.trades,
-      winRate: NaN,
-      followers: 0,
-      equity: [],
-      sample: false,
-    }
-  })
+  const [day, week, all] = await Promise.all((['24h', '7d', 'all'] as Range[]).map(fetchBoard))
+  const by = (rows: TraderRow[]) => new Map(rows.map((x) => [x.wallet, x]))
+  const d = by(day), w = by(week)
+  // Return % uses volume as the base until Baum reports equity.
+  const pct = (x?: TraderRow) => (x && x.volumeUsd ? x.pnlUsd / x.volumeUsd : 0)
+  return all.map((row) => ({
+    id: row.wallet,
+    name: row.username ? `@${row.username}` : `${row.wallet.slice(0, 6)}…${row.wallet.slice(-4)}`,
+    owner: row.username ? `@${row.username}` : '',
+    category: 'Discretionary',
+    description: `Trades through Baum. ${row.tokens} tokens traded.`,
+    pnlUsd: { '24h': d.get(row.wallet)?.pnlUsd ?? 0, '7d': w.get(row.wallet)?.pnlUsd ?? 0, all: row.pnlUsd },
+    returnPct: { '24h': pct(d.get(row.wallet)), '7d': pct(w.get(row.wallet)), all: pct(row) },
+    volumeUsd: row.volumeUsd,
+    trades: row.trades,
+    winRate: NaN,
+    followers: 0,
+    equity: [],
+    sample: false,
+  }))
 }
 
 let cache: Promise<Agent[]> | undefined
 
 export function loadAgents(): Promise<Agent[]> {
-  cache ??= BAUM.api
+  cache ??= LIVE_DATA
     ? liveAgents().catch((err) => {
         console.warn('Falling back to sample agents:', err)
         return sampleAgents()

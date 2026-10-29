@@ -22,10 +22,22 @@ Copy `.env.example` to `.env.local`:
 |---|---|
 | `VITE_BAUM_REF` | This platform's Baum referral code (a real Stable referral code, `[A-Z0-9-]`). |
 | `VITE_BAUM_BOT` | Baum bot username. |
-| `VITE_BAUM_API` | Baum origin serving `GET /api/leaderboard`. Leave it empty to show sample agents. |
+| `VITE_LIVE_DATA` | `1` reads the live leaderboard through `/api/leaderboard`. Leave it empty to show sample agents. |
+| `BAUM_API`, `BAUM_API_KEY` | Server-only (Vercel env): the Baum origin and this platform's Baum partner key. |
 | `VITE_TOKEN_SYMBOL` / `VITE_TOKEN_ADDRESS` | The platform token. Boost and vault actions stay disabled until the address is set. |
 
 All economic numbers (boost price, vault open cost, fee shares, swap bps, fee split) are in `src/config.ts`.
+
+## Baum API (paid in BAUM)
+
+Baum's data API, starting with the leaderboard, is metered for partners like this one:
+
+- The key belongs to the platform's Baum account. Create it in the bot with `/apikey new [amount]`.
+- Credits are BAUM. Each call costs 3 BAUM or $0.001 of BAUM, whichever is less.
+- Every top-up comes from the account's Baum wallet: 80% is burned with BAUM's own burn function and 20% goes to the Stable treasury Safe on Robinhood Chain.
+- The minimum top-up is 10,000 BAUM. Below 3,000 credits, Baum automatically tops up the amount set with `/apikey topup <amount>`. If that fails, it falls back to 10,000.
+
+`api/leaderboard.ts` is a Vercel function that adds the key on the server and caches each board at the edge for 60 seconds. Visitors don't spend credits; only the refresh does. If Baum errors, for example with 402 out of credits, the edge serves the last good copy for up to a day.
 
 ## Baum deep links
 
@@ -42,7 +54,7 @@ Each one records the referral the same way `ref-CODE` does.
 
 ## What's real and what isn't yet
 
-- **Real**: the pages, the Telegram funnel links with referral attribution, and the live leaderboard once `VITE_BAUM_API` points at a Baum deploy that has `/api/leaderboard`.
+- **Real**: the pages, the Telegram funnel links with referral attribution, and the live leaderboard once the server has a Baum partner key and `VITE_LIVE_DATA=1`.
 - **Mocked or disabled**: sample agents (labeled in the UI), vault deposits, boost burns, the swap page, staking, and fee routing.
 
 See [TODO.md](TODO.md) and the GitHub issues.

@@ -4,7 +4,8 @@ Each of these is bigger than a quick change. The alpha ships without them; the U
 
 ## Go live (small, do first)
 - [ ] Create the platform's Baum referral code (13 characters max, for copy links) and set `VITE_BAUM_REF`
-- [ ] Merge and deploy the Baum-side support (`atp-` deep links + public `GET /api/leaderboard`, a draft PR in the Baum repo), then set `VITE_BAUM_API`
+- [ ] Merge and deploy the Baum-side support (`atp-` deep links, the partner-keyed `GET /api/leaderboard`, range-aware PnL)
+- [ ] Fund the platform's Baum wallet with BAUM, run `/apikey new`, set `BAUM_API_KEY` in Vercel, then set `VITE_LIVE_DATA=1`
 - [ ] Confirm the production bot username (`VITE_BAUM_BOT`)
 - [ ] Deploy to Vercel. Pick the final name and domain ("Agent Arena" is a working name)
 
@@ -40,6 +41,5 @@ Each of these is bigger than a quick change. The alpha ships without them; the U
 ## Agents
 - [ ] Register existing (non-Baum) agents: prove ownership with a signed message, index the wallet's trades (agent-trading-dashboard's replay pipeline does this for Solana), and list it
 - [ ] Agent metadata: name, category, description and avatar. Live rows are wallets with no category yet, so they all show as "Discretionary"
-- [ ] Per-range PnL from Baum (its `pnlUsd` is all-time, so live 24h/7d tabs show all-time PnL for now)
 - [ ] Real returns: equity-based PnL% (PnL = equity − net deposits) instead of PnL/volume, plus a per-agent equity series
 - [ ] Embed the agent-trading-dashboard live view on agent pages
