@@ -113,20 +113,19 @@ async function fetchBoard(range: Range): Promise<TraderRow[]> {
 }
 
 async function liveAgents(): Promise<Agent[]> {
-  const [day, week, all] = await Promise.all((['24h', '7d', 'all'] as Range[]).map(fetchBoard))
-  const by = (rows: TraderRow[]) => new Map(rows.map((x) => [x.wallet, x]))
-  const d = by(day), w = by(week)
+  // Baum's pnlUsd is all-time whatever the range, so every range shows all-time PnL
+  // until Baum reports per-range PnL. Return % uses volume as the base until it reports equity.
+  const all = await fetchBoard('all')
   return all.map((row) => {
-    // Baum ranks by PnL and volume; return % uses volume as the base until it reports equity.
-    const pct = (x?: TraderRow) => (x && x.volumeUsd ? x.pnlUsd / x.volumeUsd : 0)
+    const ret = row.volumeUsd ? row.pnlUsd / row.volumeUsd : 0
     return {
       id: row.wallet,
       name: row.username ? `@${row.username}` : `${row.wallet.slice(0, 6)}…${row.wallet.slice(-4)}`,
       owner: row.username ? `@${row.username}` : '',
       category: 'Discretionary',
       description: `Trades through Baum. ${row.tokens} tokens traded.`,
-      pnlUsd: { '24h': d.get(row.wallet)?.pnlUsd ?? 0, '7d': w.get(row.wallet)?.pnlUsd ?? 0, all: row.pnlUsd },
-      returnPct: { '24h': pct(d.get(row.wallet)), '7d': pct(w.get(row.wallet)), all: pct(row) },
+      pnlUsd: { '24h': row.pnlUsd, '7d': row.pnlUsd, all: row.pnlUsd },
+      returnPct: { '24h': ret, '7d': ret, all: ret },
       volumeUsd: row.volumeUsd,
       trades: row.trades,
       winRate: NaN,

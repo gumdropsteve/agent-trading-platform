@@ -12,6 +12,7 @@ export const TOKEN = {
 export const BAUM = {
   bot: import.meta.env.VITE_BAUM_BOT ?? 'BaumReviewBot',
   // This app's Baum referral code: every user sent to Baum is attributed to it.
+  // Keep it to 13 characters or fewer, or copy links (atp-copy-<40 hex>-CODE) overflow Telegram's 64.
   referralCode: import.meta.env.VITE_BAUM_REF ?? 'AGENTARENA',
   api: import.meta.env.VITE_BAUM_API ?? '',
 }
