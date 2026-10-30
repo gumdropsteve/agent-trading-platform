@@ -59,9 +59,10 @@ const CAT_FOR: Category[] = [
   'Flippers', 'Memecoins', 'Copy trading', 'Holders', 'Yield', 'BAUM traders',
   'Memecoins', 'Flippers', 'Yield', 'Holders', 'Copy trading', 'Discretionary',
   'Creators', 'Yield', 'Flippers', 'Yield', 'Copy trading', 'Holders',
-  'Discretionary', 'BAUM traders', 'Discretionary', 'Memecoins', 'Creators', 'Yield',
+  'Discretionary', 'BAUM traders', 'Snipers', 'Memecoins', 'Creators', 'Yield',
 ]
 const BLURB: Record<Category, string> = {
+  Snipers: 'Buys new launches in their first seconds.',
   Memecoins: 'Trades many Baum launches, in early and out on strength.',
   Flippers: 'In and out fast: sells most of what it buys.',
   Holders: 'Buys and keeps; rarely sells.',

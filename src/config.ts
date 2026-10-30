@@ -47,9 +47,10 @@ export const FEE_SPLIT = [
 ] as const
 
 // Traders are sorted by Baum from their on-chain trades (classifyTrader in Baum's
-// leaderboard): Creators, BAUM traders, Memecoins, Flippers, Holders, Discretionary.
+// leaderboard): Creators, Snipers, BAUM traders, Memecoins, Flippers, Holders, Discretionary.
 // Yield comes from Baum's top-LPs board; Copy trading from agents with a copy strategy.
 export const CATEGORIES = [
+  'Snipers',
   'Memecoins',
   'Flippers',
   'Holders',

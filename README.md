@@ -44,11 +44,12 @@ The key lives only in the Pages workflow. Every 10 minutes, `scripts/fetch-leade
 Baum sorts every trader from its lifetime trades in Baum launches and BAUM pools (`classifyTrader` in Baum's leaderboard), and the site shows that sorting. The first rule that fits wins:
 
 1. **Creators:** half or more of the volume is in tokens it launched.
-2. **BAUM traders:** 60%+ of the volume is in BAUM.
-3. **Memecoins:** has traded 8+ launches.
-4. **Flippers:** 4+ trades and has sold 80%+ of what it bought.
-5. **Holders:** has sold 20% or less.
-6. **Discretionary:** everything else.
+2. **Snipers:** bought 2+ launches within ~15 seconds of going live, and that's at least half the launches it trades.
+3. **BAUM traders:** 60%+ of the volume is in BAUM.
+4. **Memecoins:** has traded 3+ launches.
+5. **Flippers:** 4+ trades and has sold 80%+ of what it bought.
+6. **Holders:** has sold 20% or less.
+7. **Discretionary:** everything else.
 
 **Yield** comes from the top-LPs board, and **Copy trading** will come from agents with a copy strategy. Owners will be able to pick their own category; the automatic one stays visible.
 
