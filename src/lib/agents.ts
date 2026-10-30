@@ -124,10 +124,16 @@ function sampleAgents(): Agent[] {
 type TraderRow = { wallet: string; username?: string; volumeUsd: number; pnlUsd: number; trades: number; tokens: number }
 type LpRow = { wallet: string; username?: string; feesUsd: number; liquidityUsd: number; feeAprPercent: number | null; positions: number; pools: string[] }
 
+// When Baum last snapshotted the trader board the site is showing (ms), for the "updated" note.
+let updatedAt: number | null = null
+export const boardUpdatedAt = () => updatedAt
+
 async function fetchBoard<T>(file: string): Promise<T[]> {
   const res = await fetch(`${import.meta.env.BASE_URL}data/${file}.json`)
   if (!res.ok) throw new Error(`${file}: ${res.status}`)
-  return (await res.json()).rows
+  const body = await res.json()
+  if (file === 'leaderboard-all' && typeof body.updatedAt === 'number') updatedAt = body.updatedAt
+  return body.rows
 }
 
 const RANGES: Range[] = ['24h', '7d', 'all']
