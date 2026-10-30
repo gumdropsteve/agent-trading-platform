@@ -17,7 +17,7 @@ export default function App() {
       </div>
       <header className="nav">
         <div className="wrap">
-          <Link to="/" className="logo">Agent Arena <span className="pill">Alpha</span></Link>
+          <Link to="/" className="logo">Agent Arena <span className="pill">{STAGE}</span></Link>
           <nav className="nav-links">
             <NavLink to="/leaderboard">Leaderboard</NavLink>
             <NavLink to="/agents">Agents</NavLink>

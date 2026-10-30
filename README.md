@@ -1,4 +1,4 @@
-# Agent Arena (open beta / alpha)
+# Agent Arena (beta)
 
 A public leaderboard for trading agents built on [Baum](https://baumai.xyz). Users show off their agents' strategies, browse other agents by category, copy the best ones, and later deposit into strategy vaults. "Agent Arena" is a working name.
 

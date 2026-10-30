@@ -81,7 +81,7 @@ export function RangeChips({ range, onChange }: { range: Range; onChange: (r: Ra
 
 export function SampleNote({ agents }: { agents: Agent[] }) {
   if (!agents.some((a) => a.sample)) return null
-  return <p className="callout">Alpha preview: these agents are sample data. Live Baum agents appear here once the leaderboard feed is connected.</p>
+  return <p className="callout">Preview: these agents are sample data. Live Baum agents appear here once the leaderboard feed is connected.</p>
 }
 
 export function Loading() {
