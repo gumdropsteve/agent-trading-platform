@@ -1,9 +1,11 @@
 import { FEES, TOKEN } from '../config'
 import { isBoosted, useAgents } from '../lib/agents'
+import { useToken, vaultOpenTokens } from '../lib/token'
 import { AgentCard, LaunchButtons, Loading, SampleNote, tokens } from '../components/ui'
 
 export default function Vaults() {
   const agents = useAgents()
+  const token = useToken()
   if (!agents) return <Loading />
   const vaults = agents
     .filter((a) => a.vault)
@@ -23,7 +25,7 @@ export default function Vaults() {
       <div className="grid">
         <div className="card">
           <h3>Open a vault</h3>
-          <p style={{ margin: 0 }}>Costs {tokens(FEES.vaultOpenTokens)} {TOKEN.symbol} or ${FEES.vaultOpenUsd} worth of {TOKEN.symbol}, whichever is less. Set your own performance fee.</p>
+          <p style={{ margin: 0 }}>Costs {tokens(FEES.vaultOpenTokens)} {TOKEN.symbol} or ${FEES.vaultOpenUsd} worth of {TOKEN.symbol}, whichever is less{token?.priceUsd ? ` (${tokens(vaultOpenTokens(token.priceUsd))} ${TOKEN.symbol} right now)` : ''}. Set your own performance fee.</p>
         </div>
         <div className="card">
           <h3>Platform share</h3>

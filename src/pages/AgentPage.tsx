@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { FEES, TOKEN } from '../config'
-import { type Range, isBoosted, useAgents } from '../lib/agents'
+import { type Agent, type Range, isBoosted, useAgents } from '../lib/agents'
+import { useToken, vaultOpenTokens } from '../lib/token'
+import { burnBoost, connect, hasWallet, txUrl } from '../lib/wallet'
 import { baumLinks } from '../lib/baum'
 import { depositSource, operatorLink, platformShare, recordLanding } from '../lib/attribution'
 import { Avatar, Loading, RangeChips, Sparkline, pct, tokens, tone, usd } from '../components/ui'
@@ -10,8 +12,8 @@ export default function AgentPage() {
   const { id = '' } = useParams()
   const { search } = useLocation()
   const agents = useAgents()
+  const token = useToken()
   const [range, setRange] = useState<Range>('7d')
-  const [hours, setHours] = useState(1)
   const [copied, setCopied] = useState(false)
   useEffect(() => recordLanding(id, search), [id, search])
 
@@ -20,7 +22,6 @@ export default function AgentPage() {
   if (!agent) return <p>No agent with that address. <Link to="/agents">Browse agents</Link></p>
 
   const share = platformShare(depositSource(agent.id))
-  const tokenLive = Boolean(TOKEN.address)
 
   return (
     <>
@@ -74,23 +75,13 @@ export default function AgentPage() {
             </>
           ) : (
             <>
-              <p>This agent doesn't take deposits. Operators open a vault for {tokens(FEES.vaultOpenTokens)} {TOKEN.symbol} or ${FEES.vaultOpenUsd} of it, whichever is less.</p>
+              <p>This agent doesn't take deposits. Operators open a vault for {tokens(vaultOpenTokens(token?.priceUsd))} {TOKEN.symbol}{token?.priceUsd ? ` (about $${FEES.vaultOpenUsd} or less)` : ` or $${FEES.vaultOpenUsd} of it, whichever is less`}.</p>
               <Link className="btn" to="/vaults">About vaults</Link>
             </>
           )}
         </div>
 
-        <div className="card">
-          <h3>Boost</h3>
-          <p>Burn {tokens(FEES.boostPerHour)} {TOKEN.symbol} an hour to feature this agent at the top of {agent.category} and on the home page.</p>
-          <div className="row">
-            <select value={hours} onChange={(e) => setHours(Number(e.target.value))} style={{ width: 'auto' }}>
-              {[1, 6, 24, 72, 168].map((h) => <option key={h} value={h}>{h < 24 ? `${h}h` : `${h / 24}d`}</option>)}
-            </select>
-            <button className="btn boost" disabled={!tokenLive}>Burn {tokens(FEES.boostPerHour * hours)} {TOKEN.symbol}</button>
-          </div>
-          {!tokenLive && <p className="note" style={{ marginTop: 8, marginBottom: 0 }}>Opens when {TOKEN.symbol} launches.</p>}
-        </div>
+        <BoostCard agent={agent} />
 
         <div className="card">
           <h3>Share</h3>
@@ -104,5 +95,52 @@ export default function AgentPage() {
         </div>
       </div>
     </>
+  )
+}
+
+function BoostCard({ agent }: { agent: Agent }) {
+  const [hours, setHours] = useState(1)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [tx, setTx] = useState('')
+  const live = Boolean(TOKEN.address) && !agent.sample
+
+  async function burn() {
+    setBusy(true)
+    setError('')
+    setTx('')
+    try {
+      const account = await connect()
+      setTx(await burnBoost(account, agent.id, hours))
+    } catch (err) {
+      // 4001: the person rejected it in their wallet, which needs no message.
+      if ((err as { code?: number }).code !== 4001) setError((err as Error).message ?? String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <h3>Boost</h3>
+      <p>Burn {tokens(FEES.boostPerHour)} {TOKEN.symbol} an hour to feature this agent at the top of {agent.category} and on the home page.</p>
+      {isBoosted(agent) && <p className="note">Boosted until {new Date(agent.boostedUntil!).toLocaleString()}. Burning more adds to it.</p>}
+      <div className="row">
+        <select value={hours} onChange={(e) => setHours(Number(e.target.value))} style={{ width: 'auto' }}>
+          {[1, 6, 24, 72, 168].map((h) => <option key={h} value={h}>{h < 24 ? `${h}h` : `${h / 24}d`}</option>)}
+        </select>
+        <button className="btn boost" disabled={!live || busy} onClick={burn}>
+          {busy ? 'Confirm in your wallet…' : `Burn ${tokens(FEES.boostPerHour * hours)} ${TOKEN.symbol}`}
+        </button>
+      </div>
+      <p className="note" style={{ marginTop: 8, marginBottom: 0 }}>
+        {!TOKEN.address ? `Opens when ${TOKEN.symbol} launches.`
+          : agent.sample ? 'Sample agents can\'t be boosted.'
+          : tx ? <>Burned. <a href={txUrl(tx)} target="_blank" rel="noreferrer">View transaction</a>. The boost shows here within 10 minutes.</>
+          : error ? <span className="down">{error}</span>
+          : !hasWallet() ? 'Needs a browser wallet with ' + TOKEN.symbol + ' on Robinhood Chain.'
+          : `Sent from your wallet on Robinhood Chain. The tokens go to the dead address.`}
+      </p>
+    </div>
   )
 }

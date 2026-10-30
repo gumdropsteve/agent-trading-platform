@@ -10,12 +10,13 @@ Each of these is bigger than a quick change. The alpha ships without them; the U
 - [ ] Pick the final name and a custom domain for Pages ("Agent Arena" is a working name)
 
 ## Token
-- [ ] Launch the platform token, then set `VITE_TOKEN_SYMBOL` and `VITE_TOKEN_ADDRESS`
+- [ ] Launch the platform token on Baum, then set the `TOKEN_SYMBOL` and `TOKEN_ADDRESS` repo variables (see the README). The site is ready for it.
 
 ## Boosts (100k tokens burned per hour)
-- [ ] On-chain burn flow: a burn tagged with the agent, or a small BoostBurner contract that emits `Boosted(agent, hours)`
-- [ ] An indexer that turns burns into `boostedUntil` per agent, served to the app
-- The UI and sorting are done. Boosted agents show first in their category and on the vaults page.
+- [x] On-chain burn flow: a tagged transfer to the dead address, sent from the agent page (`src/lib/wallet.ts`)
+- [x] Indexer: the Pages job turns burns into `boostedUntil` per agent every 10 minutes (`scripts/fetch-token.mjs`)
+- [ ] Credit boosts from smart wallets: a small BoostBurner contract that emits `Boosted(agent, amount)`
+- [ ] Vault boosts, once vaults exist (today a boost is per agent)
 
 ## Vaults
 - [ ] Design doc: custody (an ERC-4626 vault, a Safe module, or a Baum-managed wallet), how the agent trades vault funds, withdrawals, and when the performance fee is charged

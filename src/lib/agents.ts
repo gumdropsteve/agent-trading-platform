@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CATEGORIES, type Category } from '../config'
+import { loadToken } from './token'
 
 export type Range = '24h' | '7d' | 'all'
 
@@ -141,9 +142,16 @@ let cache: Promise<Agent[]> | undefined
 
 export function loadAgents(): Promise<Agent[]> {
   // No published data yet (no key, or dev): the seeded sample agents.
-  cache ??= liveAgents()
-    .then((agents) => (agents.length ? agents : sampleAgents()))
-    .catch(() => sampleAgents())
+  cache ??= Promise.all([
+    liveAgents()
+      .then((agents) => (agents.length ? agents : sampleAgents()))
+      .catch(() => sampleAgents()),
+    loadToken(),
+  ]).then(([agents, token]) => {
+    // Live agents are boosted by on-chain burns; sample agents keep their seeded boosts.
+    if (token) for (const a of agents) if (!a.sample) a.boostedUntil = token.boosts[a.id.toLowerCase()]
+    return agents
+  })
   return cache
 }
 
