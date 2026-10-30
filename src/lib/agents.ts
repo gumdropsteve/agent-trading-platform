@@ -119,8 +119,6 @@ async function liveAgents(): Promise<Agent[]> {
   const [day, week, all] = await Promise.all((['24h', '7d', 'all'] as Range[]).map(fetchBoard))
   const by = (rows: TraderRow[]) => new Map(rows.map((x) => [x.wallet, x]))
   const d = by(day), w = by(week)
-  // Return % uses volume as the base until Baum reports equity.
-  const pct = (x?: TraderRow) => (x && x.volumeUsd ? x.pnlUsd / x.volumeUsd : 0)
   return all.map((row) => ({
     id: row.wallet,
     name: row.username ? `@${row.username}` : `${row.wallet.slice(0, 6)}…${row.wallet.slice(-4)}`,
@@ -128,7 +126,8 @@ async function liveAgents(): Promise<Agent[]> {
     category: 'Discretionary',
     description: `Trades through Baum. ${row.tokens} tokens traded.`,
     pnlUsd: { '24h': d.get(row.wallet)?.pnlUsd ?? 0, '7d': w.get(row.wallet)?.pnlUsd ?? 0, all: row.pnlUsd },
-    returnPct: { '24h': pct(d.get(row.wallet)), '7d': pct(w.get(row.wallet)), all: pct(row) },
+    // No return % until Baum reports equity: PnL over volume reads +100% for a single buy that went up.
+    returnPct: { '24h': NaN, '7d': NaN, all: NaN },
     volumeUsd: row.volumeUsd,
     trades: row.trades,
     winRate: NaN,

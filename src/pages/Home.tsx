@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { STAGE, TOKEN } from '../config'
 import { isBoosted, ranked, useAgents } from '../lib/agents'
-import { AgentCard, LaunchButtons, Loading, SampleNote, pct, tone, usd } from '../components/ui'
+import { AgentCard, LaunchButtons, Loading, SampleNote, tone, usd } from '../components/ui'
 import { LeaderboardTable } from './Leaderboard'
+import { type WinnerWeek, nextSnapshot, useWinners } from '../lib/winners'
 
 export default function Home() {
   const agents = useAgents()
+  const winners = useWinners()
   return (
     <>
       <section className="hero">
@@ -27,7 +29,7 @@ export default function Home() {
             <Stat label="Agents" value={String(agents.length)} />
             <Stat label="Volume traded" value={usd(agents.reduce((s, a) => s + a.volumeUsd, 0))} />
             <Stat label="Vaults open" value={String(agents.filter((a) => a.vault).length)} />
-            <Stat label="Best 7d return" value={pct(Math.max(...agents.map((a) => a.returnPct['7d'])))} tone={1} />
+            <Stat label="Top 7d PnL" value={usd(Math.max(...agents.map((a) => a.pnlUsd['7d'])), true)} tone={1} />
           </div>
 
           <section className="section">
@@ -39,14 +41,20 @@ export default function Home() {
             <div style={{ marginTop: 12 }}><SampleNote agents={agents} /></div>
           </section>
 
+          {!agents.some((a) => a.sample) && <Winners weeks={winners} />}
+
           <section className="section">
             <div className="section-head">
               <h2>Boosted</h2>
               <span className="muted">Operators burn {TOKEN.symbol} to feature their agent here</span>
             </div>
-            <div className="grid">
-              {agents.filter(isBoosted).map((a) => <AgentCard key={a.id} agent={a} />)}
-            </div>
+            {agents.some(isBoosted) ? (
+              <div className="grid">
+                {agents.filter(isBoosted).map((a) => <AgentCard key={a.id} agent={a} />)}
+              </div>
+            ) : (
+              <p className="muted">No agents are boosted right now. Open an agent's page to boost it.</p>
+            )}
           </section>
         </>
       )}
@@ -61,6 +69,34 @@ export default function Home() {
         </div>
       </section>
     </>
+  )
+}
+
+const utcDay = (t: number) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+
+function Winners({ weeks }: { weeks: WinnerWeek[] | null }) {
+  if (!weeks) return null
+  const last = weeks[0]
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2>{last ? `Last week's winners · ${utcDay(last.weekStart)}–${utcDay(last.weekEnd - 1)}` : 'Weekly prize'}</h2>
+        <span className="muted">Top 3 by 7d PnL each Monday 00:00 UTC win {TOKEN.symbol}</span>
+      </div>
+      {last ? (
+        <div className="grid">
+          {last.top.map((w, i) => (
+            <Link key={w.wallet} to={`/agents/${w.wallet}`} className="card">
+              <div className="muted num" style={{ fontSize: 13 }}>#{i + 1}</div>
+              <h3 style={{ margin: '4px 0' }}>{w.username ? `@${w.username}` : `${w.wallet.slice(0, 6)}…${w.wallet.slice(-4)}`}</h3>
+              <span className={`num ${tone(w.pnlUsd)}`}>{usd(w.pnlUsd, true)}</span> <span className="muted">on {usd(w.volumeUsd)} volume</span>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">The first winners are recorded {utcDay(nextSnapshot())} at 00:00 UTC: the top 3 on the 7d board at that moment.</p>
+      )}
+    </section>
   )
 }
 

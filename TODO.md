@@ -27,7 +27,8 @@ Each of these is bigger than a quick change. The alpha ships without them; the U
 ## Fee router
 - [ ] Collect platform revenue: the Baum referral share, vault fee shares, and swap bps
 - [ ] Split it: 50% buys back and burns the token, 10% buys back for a weekly prize to the top 3 strategies, 10% buys back for stakers, 30% to the treasury (`FEE_SPLIT` in `src/config.ts`)
-- [ ] A weekly job that snapshots the top 3 on the 7d board and pays them
+- [x] Snapshot the weekly top 3 on the 7d board (Monday 00:00 UTC, `data/winners.json`)
+- [ ] Pay the weekly top 3 automatically
 
 ## Staking and voting (optional)
 - [ ] Stake to earn the stakers' share, and maybe vote on featured agents or fees. Decide after launch.
