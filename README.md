@@ -35,7 +35,7 @@ Baum's data API, starting with the leaderboard, is metered for partners like thi
 - The key belongs to the platform's Baum account. Create it in the bot with `/apikey new [amount]`.
 - Credits are BAUM. Each call costs 3 BAUM or $0.001 of BAUM, whichever is less.
 - Every top-up comes from the account's Baum wallet: 80% is burned with BAUM's own burn function and 20% goes to the Stable treasury Safe on Robinhood Chain.
-- The minimum top-up is 10,000 BAUM. Below 3,000 credits, Baum automatically tops up the amount set with `/apikey topup <amount>`. If that fails, it falls back to 10,000.
+- Starting a key takes 25,000 BAUM. After that, below 3,000 credits Baum automatically tops up 10,000, or the amount set with `/apikey topup <amount>`, falling back to 10,000 if that fails.
 
 The key lives only in the Pages workflow. Every 10 minutes, `scripts/fetch-leaderboard.mjs` fetches the 24h, 7d and all-time boards and publishes them as `data/leaderboard-*.json` next to the site. That's about 430 calls a day, and visitors spend nothing. If Baum errors, for example with 402 out of credits, the run keeps the copy the live site already serves.
 
