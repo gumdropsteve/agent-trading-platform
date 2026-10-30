@@ -10,11 +10,23 @@ export type Vault = {
   depositors: number
 }
 
+// A wallet's liquidity-provision stats, from Baum's top-LPs board.
+export type LpStats = {
+  feesUsd: Record<Range, number> // fees earned in the range, at today's prices
+  liquidityUsd: number // open positions' value now
+  feeAprPercent: number | null // last week's fees annualised; null under a minimum size
+  positions: number
+  pools: string[]
+}
+
 export type Agent = {
   id: string // the agent's wallet address
   name: string
   owner: string
-  category: Category
+  category: Category // the one shown first
+  categories: Category[] // every category it's listed in (an LP that also trades is in two)
+  trader: boolean // has trading stats (PnL, volume); false for a wallet only on the LP board
+  lp?: LpStats
   description: string
   pnlUsd: Record<Range, number>
   returnPct: Record<Range, number>
@@ -97,6 +109,8 @@ function sampleAgents(): Agent[] {
       vault: i % 4 === 0 || i % 7 === 2
         ? { tvlUsd: Math.round(5000 + r() * 250000), feePct: [10, 15, 20][Math.floor(r() * 3)], depositors: Math.round(3 + r() * 120) }
         : undefined,
+      categories: [category],
+      trader: true,
       sample: true,
     }
   })
@@ -108,24 +122,32 @@ function sampleAgents(): Agent[] {
 // fetches it with the paid key and publishes it as static JSON next to the site
 // (scripts/fetch-leaderboard.mjs), so the key never reaches the browser.
 type TraderRow = { wallet: string; username?: string; volumeUsd: number; pnlUsd: number; trades: number; tokens: number }
+type LpRow = { wallet: string; username?: string; feesUsd: number; liquidityUsd: number; feeAprPercent: number | null; positions: number; pools: string[] }
 
-async function fetchBoard(range: Range): Promise<TraderRow[]> {
-  const res = await fetch(`${import.meta.env.BASE_URL}data/leaderboard-${range}.json`)
-  if (!res.ok) throw new Error(`leaderboard: ${res.status}`)
+async function fetchBoard<T>(file: string): Promise<T[]> {
+  const res = await fetch(`${import.meta.env.BASE_URL}data/${file}.json`)
+  if (!res.ok) throw new Error(`${file}: ${res.status}`)
   return (await res.json()).rows
 }
 
+const RANGES: Range[] = ['24h', '7d', 'all']
+const shortName = (wallet: string, username?: string) => (username ? `@${username}` : `${wallet.slice(0, 6)}…${wallet.slice(-4)}`)
+
 async function liveAgents(): Promise<Agent[]> {
-  const [day, week, all] = await Promise.all((['24h', '7d', 'all'] as Range[]).map(fetchBoard))
-  const by = (rows: TraderRow[]) => new Map(rows.map((x) => [x.wallet, x]))
+  const [day, week, all] = await Promise.all(RANGES.map((r) => fetchBoard<TraderRow>(`leaderboard-${r}`)))
+  // The LP board is optional: without it there's simply no Yield section.
+  const [lpDay, lpWeek, lpAll] = await Promise.all(RANGES.map((r) => fetchBoard<LpRow>(`lps-${r}`).catch(() => [] as LpRow[])))
+  const by = <T extends { wallet: string }>(rows: T[]) => new Map(rows.map((x) => [x.wallet.toLowerCase(), x]))
   const d = by(day), w = by(week)
-  return all.map((row) => ({
+  const traders: Agent[] = all.map((row) => ({
     id: row.wallet,
-    name: row.username ? `@${row.username}` : `${row.wallet.slice(0, 6)}…${row.wallet.slice(-4)}`,
+    name: shortName(row.wallet, row.username),
     owner: row.username ? `@${row.username}` : '',
     category: 'Discretionary',
-    description: `Trades through Baum. ${row.tokens} tokens traded.`,
-    pnlUsd: { '24h': d.get(row.wallet)?.pnlUsd ?? 0, '7d': w.get(row.wallet)?.pnlUsd ?? 0, all: row.pnlUsd },
+    categories: ['Discretionary'],
+    trader: true,
+    description: `Trades through Baum. ${row.tokens} ${row.tokens === 1 ? 'token' : 'tokens'} traded.`,
+    pnlUsd: { '24h': d.get(row.wallet.toLowerCase())?.pnlUsd ?? 0, '7d': w.get(row.wallet.toLowerCase())?.pnlUsd ?? 0, all: row.pnlUsd },
     // No return % until Baum reports equity: PnL over volume reads +100% for a single buy that went up.
     returnPct: { '24h': NaN, '7d': NaN, all: NaN },
     volumeUsd: row.volumeUsd,
@@ -135,6 +157,46 @@ async function liveAgents(): Promise<Agent[]> {
     equity: [],
     sample: false,
   }))
+
+  // Wallets on Baum's top-LPs board go in Yield with their LP stats. One that also
+  // trades keeps its trading stats under Discretionary and is listed in both.
+  const byId = new Map(traders.map((a) => [a.id.toLowerCase(), a]))
+  const ld = by(lpDay), lw = by(lpWeek)
+  for (const row of lpAll) {
+    const key = row.wallet.toLowerCase()
+    const lp: LpStats = {
+      feesUsd: { '24h': ld.get(key)?.feesUsd ?? 0, '7d': lw.get(key)?.feesUsd ?? 0, all: row.feesUsd },
+      liquidityUsd: row.liquidityUsd,
+      feeAprPercent: row.feeAprPercent,
+      positions: row.positions,
+      pools: row.pools,
+    }
+    const known = byId.get(key)
+    if (known) {
+      known.lp = lp
+      known.categories.push('Yield')
+      continue
+    }
+    traders.push({
+      id: row.wallet,
+      name: shortName(row.wallet, row.username),
+      owner: row.username ? `@${row.username}` : '',
+      category: 'Yield',
+      categories: ['Yield'],
+      trader: false,
+      lp,
+      description: `Provides liquidity through Baum${row.pools.length ? ` in ${row.pools.slice(0, 3).join(', ')}` : ''}.`,
+      pnlUsd: { '24h': 0, '7d': 0, all: 0 },
+      returnPct: { '24h': NaN, '7d': NaN, all: NaN },
+      volumeUsd: 0,
+      trades: 0,
+      winRate: NaN,
+      followers: 0,
+      equity: [],
+      sample: false,
+    })
+  }
+  return traders
 }
 
 let cache: Promise<Agent[]> | undefined
@@ -164,10 +226,16 @@ export function useAgents() {
 
 export const isBoosted = (a: Agent) => (a.boostedUntil ?? 0) > Date.now()
 
-// Boosted agents first, then by PnL over the range.
-export function ranked(agents: Agent[], range: Range, boostFirst = false) {
+export const inCategory = (a: Agent, cat: Category) => a.categories.includes(cat)
+
+// Yield is ranked by LP fees when there are LP stats; everything else by trading PnL.
+export const byFees = (agents: Agent[]) => agents.some((a) => a.lp)
+
+// Boosted agents first, then by PnL (or LP fees, for Yield) over the range.
+export function ranked(agents: Agent[], range: Range, boostFirst = false, fees = false) {
+  const score = (a: Agent) => (fees ? a.lp?.feesUsd[range] ?? -Infinity : a.pnlUsd[range])
   return [...agents].sort(
-    (a, b) => (boostFirst ? Number(isBoosted(b)) - Number(isBoosted(a)) : 0) || b.pnlUsd[range] - a.pnlUsd[range],
+    (a, b) => (boostFirst ? Number(isBoosted(b)) - Number(isBoosted(a)) : 0) || score(b) - score(a),
   )
 }
 

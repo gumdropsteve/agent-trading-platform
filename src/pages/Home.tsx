@@ -37,7 +37,7 @@ export default function Home() {
               <h2>Top agents this week</h2>
               <Link to="/leaderboard" className="muted">Full leaderboard →</Link>
             </div>
-            <LeaderboardTable agents={ranked(agents, '7d').slice(0, 10)} range="7d" />
+            <LeaderboardTable agents={ranked(agents.filter((a) => a.trader), '7d').slice(0, 10)} range="7d" />
             <div style={{ marginTop: 12 }}><SampleNote agents={agents} /></div>
           </section>
 

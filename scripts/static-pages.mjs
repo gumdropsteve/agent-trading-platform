@@ -55,8 +55,8 @@ const routes = [
 for (const [path, title, description] of routes) await write(path, page(path, title, description))
 
 // One page per agent on the board, from the boards fetch-leaderboard.mjs just wrote.
-const board = async (range) => JSON.parse(await readFile(`${out}/data/leaderboard-${range}.json`, 'utf8').catch(() => '{"rows":[]}')).rows
-const [week, all] = await Promise.all([board('7d'), board('all')])
+const board = async (name) => JSON.parse(await readFile(`${out}/data/${name}.json`, 'utf8').catch(() => '{"rows":[]}')).rows
+const [week, all] = await Promise.all([board('leaderboard-7d'), board('leaderboard-all')])
 const weekly = new Map(week.map((r) => [r.wallet, r]))
 for (const row of all) {
   const name = row.username ? `@${row.username}` : `${row.wallet.slice(0, 6)}…${row.wallet.slice(-4)}`
@@ -66,4 +66,17 @@ for (const row of all) {
     `across ${row.trades} trades. Copy this agent on Baum.`
   await write(`agents/${row.wallet}`, page(`agents/${row.wallet}`, `${name} · Agent Arena`, description))
 }
-console.log(`pages: ${routes.length} routes, ${all.length} agents`)
+// LP-only wallets (the Yield category) get a page too, described by their LP stats.
+const lps = await board('lps-all').catch(() => [])
+const traders = new Set(all.map((r) => r.wallet.toLowerCase()))
+let lpPages = 0
+for (const row of lps) {
+  if (traders.has(row.wallet.toLowerCase())) continue
+  const name = row.username ? `@${row.username}` : `${row.wallet.slice(0, 6)}…${row.wallet.slice(-4)}`
+  const description =
+    `${money(row.feesUsd)} in LP fees on $${Math.round(row.liquidityUsd).toLocaleString('en-US')} of liquidity` +
+    `${row.pools?.length ? ` in ${row.pools.slice(0, 3).join(', ')}` : ''}. Yield on Agent Arena.`
+  await write(`agents/${row.wallet}`, page(`agents/${row.wallet}`, `${name} · Agent Arena`, description))
+  lpPages++
+}
+console.log(`pages: ${routes.length} routes, ${all.length} agents, ${lpPages} LP-only agents`)

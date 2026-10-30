@@ -1,4 +1,4 @@
-// Fetches Baum's paid leaderboard at build time and writes it next to the site as
+// Fetches Baum's paid leaderboards (traders, and top LPs for the Yield category) at build time and writes it next to the site as
 // static JSON, so the Baum partner key lives only in the GitHub Actions secret and
 // visitors never spend credits. Runs from the Pages workflow every 10 minutes.
 //
@@ -16,17 +16,26 @@ const key = process.env.BAUM_API_KEY
 const live = process.env.SITE_URL // e.g. https://gumdropsteve.github.io/agent-trading-platform/
 
 await mkdir(`${out}/data`, { recursive: true })
-const fresh = {} // boards Baum answered this run, by range
+const fresh = {} // trader boards Baum answered this run, by range
 
-for (const range of ['24h', '7d', 'all']) {
-  const file = `leaderboard-${range}.json`
+// The LP board (the Yield category) changes slowly: fetched once an hour and on
+// pushes or manual runs, and carried over from the live site in between.
+const lpDue = process.env.GITHUB_EVENT_NAME !== 'schedule' || new Date().getUTCMinutes() < 10
+const boards = [
+  ...['24h', '7d', 'all'].map((range) => ({ board: 'traders', range, file: `leaderboard-${range}.json` })),
+  ...['24h', '7d', 'all'].map((range) => ({ board: 'lps', range, file: `lps-${range}.json`, skip: !lpDue })),
+]
+
+for (const { board, range, file, skip } of boards) {
   let body = null
-  if (key) {
-    const res = await fetch(`${api}/api/leaderboard?board=traders&range=${range}`, {
+  if (key && !skip) {
+    const res = await fetch(`${api}/api/leaderboard?board=${board}&range=${range}`, {
       headers: { authorization: `Bearer ${key}` },
     }).catch(() => null)
-    if (res?.ok) body = fresh[range] = await res.text()
-    else console.warn(`${range}: Baum answered ${res?.status ?? 'nothing'}${res ? ` ${await res.text()}` : ''}`)
+    if (res?.ok) {
+      body = await res.text()
+      if (board === 'traders') fresh[range] = body
+    } else console.warn(`${board} ${range}: Baum answered ${res?.status ?? 'nothing'}${res ? ` ${await res.text()}` : ''}`)
     const credits = res?.headers.get('x-baum-credits')
     if (credits) console.log(`credits left: ${credits}`)
   }
@@ -34,11 +43,11 @@ for (const range of ['24h', '7d', 'all']) {
     const prev = await fetch(new URL(`data/${file}`, live)).catch(() => null)
     if (prev?.ok) {
       body = await prev.text()
-      console.warn(`${range}: kept the live site's copy`)
+      if (!skip) console.warn(`${board} ${range}: kept the live site's copy`)
     }
   }
   if (body) await writeFile(`${out}/data/${file}`, body)
-  else console.warn(`${range}: no data; the site will show sample agents`)
+  else console.warn(`${board} ${range}: no data${board === 'traders' ? '; the site will show sample agents' : ''}`)
 }
 
 // The weekly prize: the first run after Monday 00:00 UTC records the 7d board's top 3

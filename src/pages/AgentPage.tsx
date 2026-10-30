@@ -31,7 +31,7 @@ export default function AgentPage() {
           <div>
             <h1 style={{ fontSize: 32, margin: 0 }}>{agent.name}</h1>
             <div className="row" style={{ gap: 6 }}>
-              <span className="tag">{agent.category}</span>
+              {agent.categories.map((c) => <span key={c} className="tag">{c}</span>)}
               {isBoosted(agent) && <span className="tag boost">Boosted</span>}
               {agent.vault && <span className="tag vault">Vault</span>}
               {agent.sample && <span className="tag">Sample</span>}
@@ -43,13 +43,27 @@ export default function AgentPage() {
       </div>
       <p>{agent.description}</p>
 
+      {agent.trader && (
       <div className="stats">
-        <div className="card stat"><div className="label">PnL ({range})</div><div className={`value num ${tone(agent.pnlUsd[range])}`}>{usd(agent.pnlUsd[range], true)}</div></div>
-        {Number.isFinite(agent.returnPct[range]) && <div className="card stat"><div className="label">Return ({range})</div><div className={`value num ${tone(agent.returnPct[range])}`}>{pct(agent.returnPct[range])}</div></div>}
-        <div className="card stat"><div className="label">Volume</div><div className="value num">{usd(agent.volumeUsd)}</div></div>
-        <div className="card stat"><div className="label">Trades</div><div className="value num">{agent.trades}</div></div>
-        {Number.isFinite(agent.winRate) && <div className="card stat"><div className="label">Win rate</div><div className="value num">{Math.round(agent.winRate * 100)}%</div></div>}
-      </div>
+          <div className="card stat"><div className="label">PnL ({range})</div><div className={`value num ${tone(agent.pnlUsd[range])}`}>{usd(agent.pnlUsd[range], true)}</div></div>
+          {Number.isFinite(agent.returnPct[range]) && <div className="card stat"><div className="label">Return ({range})</div><div className={`value num ${tone(agent.returnPct[range])}`}>{pct(agent.returnPct[range])}</div></div>}
+          <div className="card stat"><div className="label">Volume</div><div className="value num">{usd(agent.volumeUsd)}</div></div>
+          <div className="card stat"><div className="label">Trades</div><div className="value num">{agent.trades}</div></div>
+          {Number.isFinite(agent.winRate) && <div className="card stat"><div className="label">Win rate</div><div className="value num">{Math.round(agent.winRate * 100)}%</div></div>}
+        </div>
+      )}
+      {agent.lp && (
+        <>
+          <h2 style={{ marginTop: agent.trader ? 28 : 0 }}>Liquidity provision</h2>
+          <div className="stats">
+            <div className="card stat"><div className="label">Fees ({range})</div><div className={`value num ${tone(agent.lp.feesUsd[range])}`}>{usd(agent.lp.feesUsd[range], true)}</div></div>
+            <div className="card stat"><div className="label">Liquidity</div><div className="value num">{usd(agent.lp.liquidityUsd)}</div></div>
+            <div className="card stat"><div className="label">Fee APR</div><div className="value num">{agent.lp.feeAprPercent === null ? '—' : `${agent.lp.feeAprPercent.toFixed(1)}%`}</div></div>
+            <div className="card stat"><div className="label">Positions</div><div className="value num">{agent.lp.positions}</div></div>
+          </div>
+          {agent.lp.pools.length > 0 && <p className="note">Pools: {agent.lp.pools.join(', ')}</p>}
+        </>
+      )}
 
       {agent.equity.length > 1 && (
         <div className="card section" style={{ overflow: 'hidden' }}>
@@ -123,7 +137,7 @@ function BoostCard({ agent }: { agent: Agent }) {
   return (
     <div className="card">
       <h3>Boost</h3>
-      <p>Burn {tokens(FEES.boostPerHour)} {TOKEN.symbol} an hour to feature this agent at the top of {agent.category} and on the home page.</p>
+      <p>Burn {tokens(FEES.boostPerHour)} {TOKEN.symbol} an hour to feature this agent at the top of {agent.categories.join(' and ')} and on the home page.</p>
       {isBoosted(agent) && <p className="note">Boosted until {new Date(agent.boostedUntil!).toLocaleString()}. Burning more adds to it.</p>}
       <div className="row">
         <select value={hours} onChange={(e) => setHours(Number(e.target.value))} style={{ width: 'auto' }}>
