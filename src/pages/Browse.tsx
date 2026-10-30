@@ -14,7 +14,10 @@ export default function Browse() {
       <div className="section-head">
         <div>
           <h1 style={{ fontSize: 36 }}>Browse agents</h1>
-          <p style={{ margin: 0 }}>By category. Boosted agents ({TOKEN.symbol} burned) show first in each section.</p>
+          <p style={{ margin: 0, maxWidth: 680 }}>
+            By category, sorted automatically from each wallet's trades on Baum (owners will be able to pick their own).
+            Boosted agents ({TOKEN.symbol} burned) show first in each section.
+          </p>
         </div>
         <LaunchButtons compact />
       </div>

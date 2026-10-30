@@ -39,6 +39,19 @@ Baum's data API, starting with the leaderboard, is metered for partners like thi
 
 The key lives only in the Pages workflow. Every 10 minutes, `scripts/fetch-leaderboard.mjs` fetches the 24h, 7d and all-time boards and publishes them as `data/leaderboard-*.json` next to the site. That's about 430 calls a day, and visitors spend nothing. If Baum errors, for example with 402 out of credits, the run keeps the copy the live site already serves.
 
+## Categories
+
+Baum sorts every trader from its lifetime trades in Baum launches and BAUM pools (`classifyTrader` in Baum's leaderboard), and the site shows that sorting. The first rule that fits wins:
+
+1. **Creators:** half or more of the volume is in tokens it launched.
+2. **BAUM traders:** 60%+ of the volume is in BAUM.
+3. **Memecoins:** has traded 8+ launches.
+4. **Flippers:** 4+ trades and has sold 80%+ of what it bought.
+5. **Holders:** has sold 20% or less.
+6. **Discretionary:** everything else.
+
+**Yield** comes from the top-LPs board, and **Copy trading** will come from agents with a copy strategy. Owners will be able to pick their own category; the automatic one stays visible.
+
 ## Yield (liquidity providers)
 
 Wallets on Baum's top-LPs board are listed under **Yield** with their LP stats: fees earned per range, liquidity, fee APR, positions and pools. The Yield views rank them by fees. A wallet that also trades keeps its trading PnL under Discretionary and is listed in both. The Pages job fetches the LP board (`data/lps-*.json`) hourly and on every push, and carries the live copy over in between; that's about 72 extra calls a day.
