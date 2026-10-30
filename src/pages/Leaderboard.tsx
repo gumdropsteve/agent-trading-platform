@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CATEGORIES, TOKEN, type Category } from '../config'
 import { type Agent, type Range, boardUpdatedAt, byFees, inCategory, isBoosted, ranked, useAgents } from '../lib/agents'
-import { Avatar, Loading, RangeChips, SampleNote, Sparkline, UpdatedNote, pct, tone, usd } from '../components/ui'
+import { Avatar, Loading, RangeChips, SampleNote, Sparkline, UpdatedNote, pct, tone, usd, winPct } from '../components/ui'
 
 export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Range }) {
   // Live Baum agents have no return % or equity series yet: leave those columns out rather than show blanks.
   const returns = agents.some((a) => Number.isFinite(a.returnPct[range]))
   const curves = agents.some((a) => a.equity.length > 1)
+  const wins = agents.some((a) => Number.isFinite(a.winRate))
   return (
     <div className="table-wrap">
       <table>
@@ -20,6 +21,7 @@ export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Ra
             {returns && <th className="r">Return</th>}
             <th className="r hide-sm">Volume</th>
             <th className="r hide-sm">Trades</th>
+            {wins && <th className="r hide-sm" title="Share of sells that closed above their average cost, over trades Baum made">Win rate</th>}
             {curves && <th className="hide-sm">30d</th>}
           </tr>
         </thead>
@@ -35,11 +37,12 @@ export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Ra
                   {a.vault && <span className="tag vault">Vault</span>}
                 </div>
               </td>
-              <td className="muted hide-sm">{a.categories.join(' · ')}</td>
+              <td className="muted hide-sm">{a.categories.join(' · ')}{a.declared ? '' : ' (suggested)'}{a.tags.length ? ` · ${a.tags.join(', ')}` : ''}</td>
               <td className={`r num ${tone(a.pnlUsd[range])}`}>{usd(a.pnlUsd[range], true)}</td>
               {returns && <td className={`r num ${tone(a.returnPct[range])}`}>{pct(a.returnPct[range])}</td>}
               <td className="r num hide-sm">{usd(a.volumeUsd)}</td>
               <td className="r num hide-sm">{a.trades}</td>
+              {wins && <td className="r num hide-sm">{winPct(a)}</td>}
               {curves && <td className="hide-sm"><Sparkline values={a.equity} width={90} height={24} /></td>}
             </tr>
           ))}
@@ -95,9 +98,12 @@ export default function Leaderboard() {
   const agents = useAgents()
   const [range, setRange] = useState<Range>('7d')
   const [cat, setCat] = useState<Category | 'All'>('All')
+  const [snipersOnly, setSnipersOnly] = useState(false)
   if (!agents) return <Loading />
   // "All" ranks trading PnL, so it lists wallets with trading stats; a category lists everyone in it.
-  const inView = agents.filter((a) => (cat === 'All' ? a.trader : inCategory(a, cat)))
+  const inView = agents.filter(
+    (a) => (cat === 'All' ? a.trader : inCategory(a, cat)) && (!snipersOnly || cat !== 'Trenchers' || a.tags.includes('Sniper')),
+  )
   const fees = cat === 'Yield' && byFees(inView)
   const shown = ranked(inView, range, false, fees)
   return (
@@ -116,6 +122,9 @@ export default function Leaderboard() {
         {(['All', ...CATEGORIES] as const).map((c) => (
           <button key={c} className={`chip${c === cat ? ' on' : ''}`} onClick={() => setCat(c)}>{c}</button>
         ))}
+        {cat === 'Trenchers' && (
+          <button className={`chip${snipersOnly ? ' on' : ''}`} onClick={() => setSnipersOnly(!snipersOnly)}>Snipers only</button>
+        )}
       </div>
       {fees ? <LpTable agents={shown} range={range} /> : <LeaderboardTable agents={shown} range={range} />}
       <div style={{ marginTop: 12 }}><SampleNote agents={agents} /></div>

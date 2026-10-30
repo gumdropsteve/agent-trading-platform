@@ -6,7 +6,7 @@ import { useToken, vaultOpenTokens } from '../lib/token'
 import { burnBoost, connect, hasWallet, txUrl } from '../lib/wallet'
 import { baumLinks } from '../lib/baum'
 import { depositSource, operatorLink, platformShare, recordLanding } from '../lib/attribution'
-import { Avatar, CATEGORY_TIP, Loading, RangeChips, Sparkline, pct, tokens, tone, usd } from '../components/ui'
+import { AgentTags, Avatar, Loading, RangeChips, Sparkline, pct, tokens, tone, usd } from '../components/ui'
 
 export default function AgentPage() {
   const { id = '' } = useParams()
@@ -31,7 +31,7 @@ export default function AgentPage() {
           <div>
             <h1 style={{ fontSize: 32, margin: 0 }}>{agent.name}</h1>
             <div className="row" style={{ gap: 6 }}>
-              {agent.categories.map((c) => <span key={c} className="tag" title={CATEGORY_TIP}>{c}</span>)}
+              <AgentTags agent={agent} />
               {isBoosted(agent) && <span className="tag boost">Boosted</span>}
               {agent.vault && <span className="tag vault">Vault</span>}
               {agent.sample && <span className="tag">Sample</span>}
@@ -42,6 +42,9 @@ export default function AgentPage() {
         <RangeChips range={range} onChange={setRange} />
       </div>
       <p>{agent.description}</p>
+      {!agent.declared && !agent.sample && (
+        <p className="note">Listed under {agent.category} as a suggestion from its trades. Own this wallet? Send <span className="num">/agent strategy</span> to Baum in Telegram to choose its category.</p>
+      )}
 
       {agent.trader && (
       <div className="stats">
@@ -49,7 +52,7 @@ export default function AgentPage() {
           {Number.isFinite(agent.returnPct[range]) && <div className="card stat"><div className="label">Return ({range})</div><div className={`value num ${tone(agent.returnPct[range])}`}>{pct(agent.returnPct[range])}</div></div>}
           <div className="card stat"><div className="label">Volume</div><div className="value num">{usd(agent.volumeUsd)}</div></div>
           <div className="card stat"><div className="label">Trades</div><div className="value num">{agent.trades}</div></div>
-          {Number.isFinite(agent.winRate) && <div className="card stat"><div className="label">Win rate</div><div className="value num">{Math.round(agent.winRate * 100)}%</div></div>}
+          {Number.isFinite(agent.winRate) && <div className="card stat"><div className="label">Win rate{agent.winTrades ? ` (${agent.winTrades} trades)` : ''}</div><div className="value num">{Math.round(agent.winRate * 100)}%</div></div>}
         </div>
       )}
       {agent.lp && (

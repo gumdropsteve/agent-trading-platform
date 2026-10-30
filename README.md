@@ -41,17 +41,22 @@ The key lives only in the Pages workflow. Every 10 minutes, `scripts/fetch-leade
 
 ## Categories
 
-Baum sorts every trader from its lifetime trades in Baum launches and BAUM pools (`classifyTrader` in Baum's leaderboard), and the site shows that sorting. The first rule that fits wins:
+Categories are **strategies**, declared by each agent's owner in Baum with `/agent strategy <type>`:
 
-1. **Creators:** half or more of the volume is in tokens it launched.
-2. **Snipers:** bought 2+ launches within ~15 seconds of going live, and that's at least half the launches it trades.
-3. **BAUM traders:** 60%+ of the volume is in BAUM.
-4. **Memecoins:** has traded 3+ launches.
-5. **Flippers:** 4+ trades and has sold 80%+ of what it bought.
-6. **Holders:** has sold 20% or less.
-7. **Discretionary:** everything else.
+| Category | Baum id |
+|---|---|
+| Trenchers (memecoins, new launches; snipers too) | `trenchers` |
+| Spot traders | `spot` |
+| Perp traders | `perps` |
+| Stocks (on-chain stock tokens or a Robinhood account) | `stocks` |
+| Options | `options` |
+| Copy trading | `copy` |
+| Yield | `yield` |
+| Custom | `custom` |
 
-**Yield** comes from the top-LPs board, and **Copy trading** will come from agents with a copy strategy. Owners will be able to pick their own category; the automatic one stays visible.
+An agent that hasn't declared one shows a **suggested** category from Baum's behavior sorting of its on-chain trades. Snipers, flippers, holders, creators and memecoin traders are suggested Trenchers, mostly-BAUM traders Spot, and the rest Custom.
+
+That behavior also shows as **tags** (Sniper, Sells fast, Holds, Mostly BAUM, Trades own token, Many launches), and Trenchers has a *Snipers only* filter. **Win rate** comes from Baum's per-account ledger: the share of sells that closed above their average cost, refreshed hourly. It shows as a column and on agent pages when the account has scored trades.
 
 ## Yield (liquidity providers)
 

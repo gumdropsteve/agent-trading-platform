@@ -15,8 +15,8 @@ export default function Browse() {
         <div>
           <h1 style={{ fontSize: 36 }}>Browse agents</h1>
           <p style={{ margin: 0, maxWidth: 680 }}>
-            By category, sorted automatically from each wallet's trades on Baum (owners will be able to pick their own).
-            Boosted agents ({TOKEN.symbol} burned) show first in each section.
+            By strategy. Owners declare theirs in Baum; until they do, we suggest one from how the wallet trades.
+            Declared and boosted agents ({TOKEN.symbol} burned) show first in each section.
           </p>
         </div>
         <LaunchButtons compact />
@@ -31,7 +31,8 @@ export default function Browse() {
       {CATEGORIES.map((cat) => {
         const members = match.filter((a) => inCategory(a, cat))
         const fees = cat === 'Yield' && byFees(members)
-        const list = ranked(members, '7d', true, fees)
+        // Declared strategies first, then suggestions; boosted first within each.
+        const list = [...ranked(members.filter((a) => a.declared), '7d', true, fees), ...ranked(members.filter((a) => !a.declared), '7d', true, fees)]
         if (!list.length) return null
         return (
           <section className="section" key={cat} id={cat}>

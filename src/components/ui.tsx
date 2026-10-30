@@ -10,7 +10,26 @@ export const usd = (n: number, signed = false) => {
 }
 export const pct = (n: number) => (Number.isFinite(n) ? `${n < 0 ? '−' : '+'}${Math.abs(n * 100).toFixed(1)}%` : '—')
 export const tokens = (n: number) => n.toLocaleString('en-US')
-export const CATEGORY_TIP = "Sorted automatically from this wallet's trades on Baum"
+// An agent's categories, marked "suggested" when the owner hasn't declared a
+// strategy, then its behaviour tags (what Baum saw it do on chain).
+export function AgentTags({ agent }: { agent: Agent }) {
+  return (
+    <>
+      {agent.categories.map((c) => (
+        <span
+          key={c}
+          className="tag"
+          title={agent.declared ? 'Strategy declared by the owner in Baum' : "Suggested from this wallet's trades; the owner hasn't declared a strategy"}
+        >
+          {c}{agent.declared ? '' : ' · suggested'}
+        </span>
+      ))}
+      {agent.tags.map((t) => <span key={t} className="tag" title="Seen in this wallet's trades on Baum">{t}</span>)}
+    </>
+  )
+}
+
+export const winPct = (a: Agent) => (Number.isFinite(a.winRate) ? `${Math.round(a.winRate * 100)}%` : '—')
 export const tone = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : '')
 
 const HUES = [210, 160, 25, 280, 340, 45, 190, 120]
@@ -43,7 +62,7 @@ export function AgentCard({ agent, range = '7d', lp = false }: { agent: Agent; r
           <div>
             <div style={{ fontWeight: 600 }}>{agent.name}</div>
             <div className="row" style={{ gap: 4 }}>
-              {agent.categories.map((c) => <span key={c} className="tag" title={CATEGORY_TIP}>{c}</span>)}
+              <AgentTags agent={agent} />
               {isBoosted(agent) && <span className="tag boost">Boosted</span>}
               {agent.vault && <span className="tag vault">Vault</span>}
             </div>
