@@ -15,7 +15,9 @@ export const tone = (n: number) => (n > 0 ? 'up' : n < 0 ? 'down' : '')
 const HUES = [210, 160, 25, 280, 340, 45, 190, 120]
 export function Avatar({ agent }: { agent: Agent }) {
   const h = HUES[parseInt(agent.id.slice(2, 4), 16) % HUES.length]
-  return <span className="avatar" style={{ background: `hsl(${h} 55% 45%)` }}>{agent.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase()}</span>
+  // Unnamed wallets are named 0x1234…abcd; their initials are the hex after 0x, not "0X".
+  const initials = agent.name.replace(/^0x/i, '').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase()
+  return <span className="avatar" style={{ background: `hsl(${h} 55% 45%)` }}>{initials}</span>
 }
 
 export function Sparkline({ values, width = 120, height = 32, fluid = false }: { values: number[]; width?: number; height?: number; fluid?: boolean }) {
@@ -50,7 +52,7 @@ export function AgentCard({ agent, range = '7d' }: { agent: Agent; range?: Range
       <p style={{ margin: 0, fontSize: 14 }}>{agent.description}</p>
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <span className={`num ${tone(agent.pnlUsd[range])}`}>{usd(agent.pnlUsd[range], true)} <span className="muted">{range}</span></span>
-        <span className={`num ${tone(agent.returnPct[range])}`}>{pct(agent.returnPct[range])}</span>
+        {Number.isFinite(agent.returnPct[range]) && <span className={`num ${tone(agent.returnPct[range])}`}>{pct(agent.returnPct[range])}</span>}
       </div>
     </Link>
   )

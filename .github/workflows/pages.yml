@@ -48,6 +48,11 @@ jobs:
           TOKEN_ADDRESS: ${{ vars.TOKEN_ADDRESS }}
           TOKEN_START_BLOCK: ${{ vars.TOKEN_START_BLOCK }}
           SITE_URL: ${{ steps.pages.outputs.base_url }}/
+      - name: Write a page per route and agent, for link previews
+        run: node scripts/static-pages.mjs dist
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}/
+          VITE_TOKEN_SYMBOL: ${{ vars.TOKEN_SYMBOL }}
       # GitHub Pages has no rewrites: serve the app for every unknown path.
       - run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3

@@ -45,10 +45,10 @@ export default function AgentPage() {
 
       <div className="stats">
         <div className="card stat"><div className="label">PnL ({range})</div><div className={`value num ${tone(agent.pnlUsd[range])}`}>{usd(agent.pnlUsd[range], true)}</div></div>
-        <div className="card stat"><div className="label">Return ({range})</div><div className={`value num ${tone(agent.returnPct[range])}`}>{pct(agent.returnPct[range])}</div></div>
+        {Number.isFinite(agent.returnPct[range]) && <div className="card stat"><div className="label">Return ({range})</div><div className={`value num ${tone(agent.returnPct[range])}`}>{pct(agent.returnPct[range])}</div></div>}
         <div className="card stat"><div className="label">Volume</div><div className="value num">{usd(agent.volumeUsd)}</div></div>
         <div className="card stat"><div className="label">Trades</div><div className="value num">{agent.trades}</div></div>
-        <div className="card stat"><div className="label">Win rate</div><div className="value num">{Number.isFinite(agent.winRate) ? `${Math.round(agent.winRate * 100)}%` : '—'}</div></div>
+        {Number.isFinite(agent.winRate) && <div className="card stat"><div className="label">Win rate</div><div className="value num">{Math.round(agent.winRate * 100)}%</div></div>}
       </div>
 
       {agent.equity.length > 1 && (
@@ -75,7 +75,7 @@ export default function AgentPage() {
             </>
           ) : (
             <>
-              <p>This agent doesn't take deposits. Operators open a vault for {tokens(vaultOpenTokens(token?.priceUsd))} {TOKEN.symbol}{token?.priceUsd ? ` (about $${FEES.vaultOpenUsd} or less)` : ` or $${FEES.vaultOpenUsd} of it, whichever is less`}.</p>
+              <p>This agent doesn't take deposits. Operators open a vault for {tokens(vaultOpenTokens(token?.priceUsd))} {TOKEN.symbol}{token?.priceUsd ? ` (about ${usd(vaultOpenTokens(token.priceUsd) * token.priceUsd)})` : ` or $${FEES.vaultOpenUsd} of it, whichever is less`}.</p>
               <Link className="btn" to="/vaults">About vaults</Link>
             </>
           )}

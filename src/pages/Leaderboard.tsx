@@ -5,6 +5,9 @@ import { type Agent, type Range, isBoosted, ranked, useAgents } from '../lib/age
 import { Avatar, Loading, RangeChips, SampleNote, Sparkline, pct, tone, usd } from '../components/ui'
 
 export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Range }) {
+  // Live Baum agents have no return % or equity series yet: leave those columns out rather than show blanks.
+  const returns = agents.some((a) => Number.isFinite(a.returnPct[range]))
+  const curves = agents.some((a) => a.equity.length > 1)
   return (
     <div className="table-wrap">
       <table>
@@ -14,10 +17,10 @@ export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Ra
             <th>Agent</th>
             <th className="hide-sm">Category</th>
             <th className="r">PnL</th>
-            <th className="r">Return</th>
+            {returns && <th className="r">Return</th>}
             <th className="r hide-sm">Volume</th>
             <th className="r hide-sm">Trades</th>
-            <th className="hide-sm">30d</th>
+            {curves && <th className="hide-sm">30d</th>}
           </tr>
         </thead>
         <tbody>
@@ -34,10 +37,10 @@ export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Ra
               </td>
               <td className="muted hide-sm">{a.category}</td>
               <td className={`r num ${tone(a.pnlUsd[range])}`}>{usd(a.pnlUsd[range], true)}</td>
-              <td className={`r num ${tone(a.returnPct[range])}`}>{pct(a.returnPct[range])}</td>
+              {returns && <td className={`r num ${tone(a.returnPct[range])}`}>{pct(a.returnPct[range])}</td>}
               <td className="r num hide-sm">{usd(a.volumeUsd)}</td>
               <td className="r num hide-sm">{a.trades}</td>
-              <td className="hide-sm"><Sparkline values={a.equity} width={90} height={24} /></td>
+              {curves && <td className="hide-sm"><Sparkline values={a.equity} width={90} height={24} /></td>}
             </tr>
           ))}
         </tbody>

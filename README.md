@@ -39,6 +39,11 @@ Baum's data API, starting with the leaderboard, is metered for partners like thi
 
 The key lives only in the Pages workflow. Every 10 minutes, `scripts/fetch-leaderboard.mjs` fetches the 24h, 7d and all-time boards and publishes them as `data/leaderboard-*.json` next to the site. That's about 430 calls a day, and visitors spend nothing. If Baum errors, for example with 402 out of credits, the run keeps the copy the live site already serves.
 
+## Weekly winners and link previews
+
+- **Winners.** The first Pages run after each Monday 00:00 UTC records the 7d board's top 3 by PnL in `data/winners.json`, and the home page shows them. History carries forward from the live site's copy. Paying the prize is manual until the fee router exists.
+- **Link previews.** `scripts/static-pages.mjs` writes a real HTML file for every route and every agent on the board, each with its own title, description and `og.png` card. Link previews on X, Telegram and Discord don't run JavaScript; with these files they show the agent's PnL instead of the home page.
+
 ## Launching the token
 
 The token is meant to launch on Baum's launchpad (Pons, Robinhood Chain). After it does:
