@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CATEGORIES, TOKEN, type Category } from '../config'
-import { type Agent, type Range, isBoosted, ranked, useAgents } from '../lib/agents'
+import { type Agent, type Range, byFees, inCategory, isBoosted, ranked, useAgents } from '../lib/agents'
 import { Avatar, Loading, RangeChips, SampleNote, Sparkline, pct, tone, usd } from '../components/ui'
 
 export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Range }) {
@@ -35,7 +35,7 @@ export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Ra
                   {a.vault && <span className="tag vault">Vault</span>}
                 </div>
               </td>
-              <td className="muted hide-sm">{a.category}</td>
+              <td className="muted hide-sm">{a.categories.join(' · ')}</td>
               <td className={`r num ${tone(a.pnlUsd[range])}`}>{usd(a.pnlUsd[range], true)}</td>
               {returns && <td className={`r num ${tone(a.returnPct[range])}`}>{pct(a.returnPct[range])}</td>}
               <td className="r num hide-sm">{usd(a.volumeUsd)}</td>
@@ -49,18 +49,65 @@ export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Ra
   )
 }
 
+const apr = (n: number | null) => (n === null ? '—' : `${n.toFixed(n < 10 ? 1 : 0)}%`)
+
+// The Yield view: LP wallets ranked by fees earned, with the LP board's stats.
+export function LpTable({ agents, range }: { agents: Agent[]; range: Range }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th className="rank">#</th>
+            <th>Agent</th>
+            <th className="r">Fees</th>
+            <th className="r hide-sm">Liquidity</th>
+            <th className="r">Fee APR</th>
+            <th className="r hide-sm">Positions</th>
+            <th className="hide-sm">Pools</th>
+          </tr>
+        </thead>
+        <tbody>
+          {agents.map((a, i) => (
+            <tr key={a.id}>
+              <td className="rank num">{i + 1}</td>
+              <td>
+                <div className="row" style={{ gap: 8, flexWrap: 'nowrap' }}>
+                  <Avatar agent={a} />
+                  <Link to={`/agents/${a.id}`}>{a.name}</Link>
+                  {isBoosted(a) && <span className="tag boost">Boosted</span>}
+                </div>
+              </td>
+              <td className={`r num ${tone(a.lp?.feesUsd[range] ?? 0)}`}>{usd(a.lp?.feesUsd[range] ?? 0, true)}</td>
+              <td className="r num hide-sm">{usd(a.lp?.liquidityUsd ?? 0)}</td>
+              <td className="r num">{apr(a.lp?.feeAprPercent ?? null)}</td>
+              <td className="r num hide-sm">{a.lp?.positions ?? 0}</td>
+              <td className="muted hide-sm" style={{ fontSize: 13 }}>{a.lp?.pools.slice(0, 3).join(', ')}{(a.lp?.pools.length ?? 0) > 3 ? '…' : ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function Leaderboard() {
   const agents = useAgents()
   const [range, setRange] = useState<Range>('7d')
   const [cat, setCat] = useState<Category | 'All'>('All')
   if (!agents) return <Loading />
-  const shown = ranked(agents.filter((a) => cat === 'All' || a.category === cat), range)
+  // "All" ranks trading PnL, so it lists wallets with trading stats; a category lists everyone in it.
+  const inView = agents.filter((a) => (cat === 'All' ? a.trader : inCategory(a, cat)))
+  const fees = cat === 'Yield' && byFees(inView)
+  const shown = ranked(inView, range, false, fees)
   return (
     <>
       <div className="section-head">
         <div>
           <h1 style={{ fontSize: 36 }}>Leaderboard</h1>
-          <p style={{ margin: 0 }}>Ranked by PnL. The top 3 strategies each week split the {TOKEN.symbol} prize pool.</p>
+          <p style={{ margin: 0 }}>
+            {fees ? 'Yield: liquidity providers ranked by fees earned, from Baum\'s top-LPs board.' : `Ranked by PnL. The top 3 strategies each week split the ${TOKEN.symbol} prize pool.`}
+          </p>
         </div>
         <RangeChips range={range} onChange={setRange} />
       </div>
@@ -69,7 +116,7 @@ export default function Leaderboard() {
           <button key={c} className={`chip${c === cat ? ' on' : ''}`} onClick={() => setCat(c)}>{c}</button>
         ))}
       </div>
-      <LeaderboardTable agents={shown} range={range} />
+      {fees ? <LpTable agents={shown} range={range} /> : <LeaderboardTable agents={shown} range={range} />}
       <div style={{ marginTop: 12 }}><SampleNote agents={agents} /></div>
     </>
   )

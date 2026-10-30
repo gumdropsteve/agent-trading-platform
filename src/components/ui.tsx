@@ -32,7 +32,8 @@ export function Sparkline({ values, width = 120, height = 32, fluid = false }: {
   )
 }
 
-export function AgentCard({ agent, range = '7d' }: { agent: Agent; range?: Range }) {
+// `lp` shows the LP stats (fees, liquidity) instead of trading PnL, for the Yield section.
+export function AgentCard({ agent, range = '7d', lp = false }: { agent: Agent; range?: Range; lp?: boolean }) {
   return (
     <Link to={`/agents/${agent.id}`} className={`card agent-card${isBoosted(agent) ? ' boosted' : ''}`}>
       <div className="agent-top">
@@ -41,7 +42,7 @@ export function AgentCard({ agent, range = '7d' }: { agent: Agent; range?: Range
           <div>
             <div style={{ fontWeight: 600 }}>{agent.name}</div>
             <div className="row" style={{ gap: 4 }}>
-              <span className="tag">{agent.category}</span>
+              {agent.categories.map((c) => <span key={c} className="tag">{c}</span>)}
               {isBoosted(agent) && <span className="tag boost">Boosted</span>}
               {agent.vault && <span className="tag vault">Vault</span>}
             </div>
@@ -50,10 +51,17 @@ export function AgentCard({ agent, range = '7d' }: { agent: Agent; range?: Range
         <Sparkline values={agent.equity} width={80} height={28} />
       </div>
       <p style={{ margin: 0, fontSize: 14 }}>{agent.description}</p>
+      {lp && agent.lp ? (
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <span className={`num ${tone(agent.lp.feesUsd[range])}`}>{usd(agent.lp.feesUsd[range], true)} <span className="muted">fees {range}</span></span>
+          <span className="num muted">{usd(agent.lp.liquidityUsd)} liquidity</span>
+        </div>
+      ) : (
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <span className={`num ${tone(agent.pnlUsd[range])}`}>{usd(agent.pnlUsd[range], true)} <span className="muted">{range}</span></span>
         {Number.isFinite(agent.returnPct[range]) && <span className={`num ${tone(agent.returnPct[range])}`}>{pct(agent.returnPct[range])}</span>}
       </div>
+      )}
     </Link>
   )
 }
