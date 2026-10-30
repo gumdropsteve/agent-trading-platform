@@ -1,6 +1,6 @@
 # TODO
 
-Each of these is bigger than a quick change. The alpha ships without them; the UI shows them as "coming soon" or disabled.
+Each of these is bigger than a quick change. The beta ships without them; the UI shows them as "coming soon" or disabled.
 
 ## Go live (small, do first)
 - [x] Referral code: `ASH-LEAF-85`, the Stable code of the platform's Baum wallet (0xa776…D66f). Don't re-roll it in Stable, or every link breaks

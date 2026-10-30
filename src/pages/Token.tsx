@@ -100,7 +100,7 @@ export default function Token() {
             </tbody>
           </table>
         </div>
-        <p className="callout" style={{ marginTop: 14 }}>Alpha: these numbers can change. Boost burns are on-chain; vaults and the fee split aren't yet.</p>
+        <p className="callout" style={{ marginTop: 14 }}>Beta: these numbers can change. Boost burns are on-chain; vaults and the fee split aren't yet.</p>
       </section>
     </div>
   )

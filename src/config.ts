@@ -2,7 +2,7 @@
 // Env values use || so an empty variable (as CI passes an unset one) keeps the default.
 // None of this is enforced on-chain yet: see TODO.md.
 
-export const STAGE = 'Open Beta · Alpha'
+export const STAGE = 'Beta'
 
 export const TOKEN = {
   symbol: import.meta.env.VITE_TOKEN_SYMBOL || 'AGENT',
