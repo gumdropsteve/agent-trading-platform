@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CATEGORIES, type Category } from '../config'
+import { BEHAVIOR, CATEGORIES, STRATEGY_CATEGORY, type Category } from '../config'
 import { loadToken } from './token'
 
 export type Range = '24h' | '7d' | 'all'
@@ -26,6 +26,9 @@ export type Agent = {
   category: Category // the one shown first
   categories: Category[] // every category it's listed in (an LP that also trades is in two)
   trader: boolean // has trading stats (PnL, volume); false for a wallet only on the LP board
+  declared: boolean // the owner declared its strategy in Baum; otherwise the category is suggested
+  tags: string[] // behaviour seen on chain (Sniper, Sells fast…), shown as evidence
+  winTrades?: number // scored trades behind winRate
   lp?: LpStats
   description: string
   pnlUsd: Record<Range, number>
@@ -56,21 +59,20 @@ const NAMES = [
   'Night Shift', 'Slow Stacker', 'Volatility Vic', 'Narrative Nate', 'Range Rider', 'Lazy Lender',
 ]
 const CAT_FOR: Category[] = [
-  'Flippers', 'Memecoins', 'Copy trading', 'Holders', 'Yield', 'BAUM traders',
-  'Memecoins', 'Flippers', 'Yield', 'Holders', 'Copy trading', 'Discretionary',
-  'Creators', 'Yield', 'Flippers', 'Yield', 'Copy trading', 'Holders',
-  'Discretionary', 'BAUM traders', 'Snipers', 'Memecoins', 'Creators', 'Yield',
+  'Spot traders', 'Trenchers', 'Copy trading', 'Stocks', 'Yield', 'Spot traders',
+  'Trenchers', 'Perp traders', 'Yield', 'Spot traders', 'Copy trading', 'Custom',
+  'Trenchers', 'Yield', 'Perp traders', 'Yield', 'Copy trading', 'Options',
+  'Custom', 'Spot traders', 'Trenchers', 'Trenchers', 'Stocks', 'Yield',
 ]
 const BLURB: Record<Category, string> = {
-  Snipers: 'Buys new launches in their first seconds.',
-  Memecoins: 'Trades many Baum launches, in early and out on strength.',
-  Flippers: 'In and out fast: sells most of what it buys.',
-  Holders: 'Buys and keeps; rarely sells.',
-  'BAUM traders': 'Mostly trades BAUM itself.',
-  Creators: 'Trades the tokens it launched.',
+  Trenchers: 'Hunts new launches and memecoins, in early and out on strength.',
+  'Spot traders': 'Trades ETH and majors on trend breaks, cuts losers fast.',
+  'Perp traders': 'Runs leveraged longs and shorts with tight stops.',
+  Stocks: 'Swings stock tokens around earnings.',
+  Options: 'Sells covered calls and buys protective puts.',
   'Copy trading': 'Mirrors tracked wallets and politicians with a size cap.',
   Yield: 'Provides liquidity and earns the fees.',
-  Discretionary: 'Managed by hand through Baum chat.',
+  Custom: 'Managed by hand through Baum chat.',
 }
 
 function hex(r: () => number, n: number) {
@@ -112,6 +114,8 @@ function sampleAgents(): Agent[] {
         : undefined,
       categories: [category],
       trader: true,
+      declared: true,
+      tags: [],
       sample: true,
     }
   })
@@ -122,10 +126,20 @@ function sampleAgents(): Agent[] {
 // Shape of a row from Baum's GET /api/leaderboard?board=traders. The Pages workflow
 // fetches it with the paid key and publishes it as static JSON next to the site
 // (scripts/fetch-leaderboard.mjs), so the key never reaches the browser.
-type TraderRow = { wallet: string; username?: string; volumeUsd: number; pnlUsd: number; trades: number; tokens: number; category?: string }
+type TraderRow = {
+  wallet: string; username?: string; volumeUsd: number; pnlUsd: number; trades: number; tokens: number
+  category?: string // Baum's behaviour sorting (Snipers, Flippers…)
+  strategy?: string // the strategy the wallet's Baum account declared
+  winRate?: number // its account's win rate over Baum-made trades, 0..1
+  winTrades?: number
+}
 
-// Baum's own sorting of the wallet (classifyTrader); anything unknown is Discretionary.
-const sortedCategory = (c?: string): Category => (CATEGORIES as readonly string[]).includes(c ?? '') ? (c as Category) : 'Discretionary'
+// The declared strategy's category, or the one its behaviour suggests.
+function categoryOf(row: TraderRow): { category: Category; declared: boolean; tags: string[] } {
+  const behavior = BEHAVIOR[row.category ?? ''] ?? BEHAVIOR.Discretionary
+  const declared = row.strategy ? STRATEGY_CATEGORY[row.strategy] : undefined
+  return { category: declared ?? behavior.suggests, declared: Boolean(declared), tags: behavior.tag ? [behavior.tag] : [] }
+}
 type LpRow = { wallet: string; username?: string; feesUsd: number; liquidityUsd: number; feeAprPercent: number | null; positions: number; pools: string[] }
 
 // When Baum last snapshotted the trader board the site is showing (ms), for the "updated" note.
@@ -149,24 +163,29 @@ async function liveAgents(): Promise<Agent[]> {
   const [lpDay, lpWeek, lpAll] = await Promise.all(RANGES.map((r) => fetchBoard<LpRow>(`lps-${r}`).catch(() => [] as LpRow[])))
   const by = <T extends { wallet: string }>(rows: T[]) => new Map(rows.map((x) => [x.wallet.toLowerCase(), x]))
   const d = by(day), w = by(week)
-  const traders: Agent[] = all.map((row) => ({
+  const traders: Agent[] = all.map((row) => {
+    const sorted = categoryOf(row)
+    return {
     id: row.wallet,
     name: shortName(row.wallet, row.username),
     owner: row.username ? `@${row.username}` : '',
-    category: sortedCategory(row.category),
-    categories: [sortedCategory(row.category)],
+    category: sorted.category,
+    categories: [sorted.category],
     trader: true,
+    declared: sorted.declared,
+    tags: sorted.tags,
     description: `Trades through Baum. ${row.tokens} ${row.tokens === 1 ? 'token' : 'tokens'} traded.`,
     pnlUsd: { '24h': d.get(row.wallet.toLowerCase())?.pnlUsd ?? 0, '7d': w.get(row.wallet.toLowerCase())?.pnlUsd ?? 0, all: row.pnlUsd },
     // No return % until Baum reports equity: PnL over volume reads +100% for a single buy that went up.
     returnPct: { '24h': NaN, '7d': NaN, all: NaN },
     volumeUsd: row.volumeUsd,
     trades: row.trades,
-    winRate: NaN,
+    winRate: typeof row.winRate === 'number' ? row.winRate : NaN,
+    ...(row.winTrades ? { winTrades: row.winTrades } : {}),
     followers: 0,
     equity: [],
     sample: false,
-  }))
+  }})
 
   // Wallets on Baum's top-LPs board go in Yield with their LP stats. One that also
   // trades keeps its trading stats under Discretionary and is listed in both.
@@ -184,7 +203,7 @@ async function liveAgents(): Promise<Agent[]> {
     const known = byId.get(key)
     if (known) {
       known.lp = lp
-      known.categories.push('Yield')
+      if (!known.categories.includes('Yield')) known.categories.push('Yield')
       continue
     }
     traders.push({
@@ -194,6 +213,8 @@ async function liveAgents(): Promise<Agent[]> {
       category: 'Yield',
       categories: ['Yield'],
       trader: false,
+      declared: false,
+      tags: [],
       lp,
       description: `Provides liquidity through Baum${row.pools.length ? ` in ${row.pools.slice(0, 3).join(', ')}` : ''}.`,
       pnlUsd: { '24h': 0, '7d': 0, all: 0 },
