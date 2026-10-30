@@ -6,7 +6,7 @@ import { useToken, vaultOpenTokens } from '../lib/token'
 import { burnBoost, connect, hasWallet, txUrl } from '../lib/wallet'
 import { baumLinks } from '../lib/baum'
 import { depositSource, operatorLink, platformShare, recordLanding } from '../lib/attribution'
-import { Avatar, Loading, RangeChips, Sparkline, pct, tokens, tone, usd } from '../components/ui'
+import { Avatar, CATEGORY_TIP, Loading, RangeChips, Sparkline, pct, tokens, tone, usd } from '../components/ui'
 
 export default function AgentPage() {
   const { id = '' } = useParams()
@@ -31,7 +31,7 @@ export default function AgentPage() {
           <div>
             <h1 style={{ fontSize: 32, margin: 0 }}>{agent.name}</h1>
             <div className="row" style={{ gap: 6 }}>
-              {agent.categories.map((c) => <span key={c} className="tag">{c}</span>)}
+              {agent.categories.map((c) => <span key={c} className="tag" title={CATEGORY_TIP}>{c}</span>)}
               {isBoosted(agent) && <span className="tag boost">Boosted</span>}
               {agent.vault && <span className="tag vault">Vault</span>}
               {agent.sample && <span className="tag">Sample</span>}

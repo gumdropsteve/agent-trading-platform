@@ -43,6 +43,7 @@ Each of these is bigger than a quick change. The beta ships without them; the UI
 ## Agents
 - [ ] Register existing (non-Baum) agents: prove ownership with a signed message, index the wallet's trades (agent-trading-dashboard's replay pipeline does this for Solana), and list it
 - [x] Yield: wallets on Baum's top-LPs board are listed under Yield with LP stats
-- [ ] Agent metadata: name, category, description and avatar. Traders all show as "Discretionary" for now
+- [x] Auto-sort traders into categories (Baum's `classifyTrader`)
+- [ ] Owners pick their own category, name, description and avatar; snipers (needs first-buy timing in Baum's tally)
 - [ ] Real returns: equity-based PnL% (PnL = equity − net deposits) instead of PnL/volume, plus a per-agent equity series
 - [ ] Embed the agent-trading-dashboard live view on agent pages
