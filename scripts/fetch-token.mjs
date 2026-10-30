@@ -8,7 +8,9 @@
 // A boost is a plain ERC-20 transfer to the dead address with the agent's wallet
 // appended to the calldata (see src/lib/wallet.ts). Token contracts ignore trailing
 // calldata, so the transfer is an ordinary burn; this script reads the tag back off
-// each burn's transaction. Burns with no tag still count toward the burned total.
+// each burn's transaction. Burns with no tag still count toward the burned total,
+// and so do burns through the token's own burn() (a Transfer to 0x0 that lowers
+// totalSupply), which never touch the dead address.
 //
 // It scans incrementally: the previous run's file on the live site says which block
 // it reached. Without a token address it writes nothing and the site keeps its
@@ -29,6 +31,7 @@ const DEAD = '0x000000000000000000000000000000000000dead'
 const TAG = '41545042' // "ATPB", then the agent's 20-byte address
 const TRANSFER = '0xa9059cbb'
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
+const ZERO = '0x' + '0'.repeat(64)
 // Robinhood Chain allows 10M blocks per eth_getLogs when each filter position has one value.
 const SPAN = 10_000_000
 const RECENT = 25
@@ -74,7 +77,9 @@ const prev = live
   : null
 const state = prev?.address === token
   ? prev
-  : { address: token, scannedTo: startBlock - 1, boosts: {}, recentBoosts: [], boostBurned: 0 }
+  : { address: token, scannedTo: startBlock - 1, boosts: {}, recentBoosts: [], boostBurned: 0, supplyBurned: 0 }
+// Files from before supply burns were counted: rescan from the start once to pick them up.
+if (state.supplyBurned === undefined) Object.assign(state, { scannedTo: startBlock - 1, boosts: {}, recentBoosts: [], boostBurned: 0, supplyBurned: 0 })
 
 await mkdir(`${out}/data`, { recursive: true })
 try {
@@ -95,6 +100,13 @@ try {
       toBlock: '0x' + to.toString(16),
       topics: [TRANSFER_TOPIC, null, '0x' + pad(DEAD)],
     }])
+    const burns = await call('eth_getLogs', [{
+      address: token,
+      fromBlock: '0x' + from.toString(16),
+      toBlock: '0x' + to.toString(16),
+      topics: [TRANSFER_TOPIC, null, ZERO],
+    }])
+    for (const log of burns) state.supplyBurned += Number(BigInt(log.data)) / unit
     for (const log of logs) {
       const tx = await call('eth_getTransactionByHash', [log.transactionHash])
       const input = (tx?.input ?? '').toLowerCase()
@@ -119,7 +131,8 @@ try {
     decimals,
     ...(await price()),
     totalSupply: Number(supply) / unit,
-    burned: Number(dead) / unit,
+    burned: Number(dead) / unit + state.supplyBurned,
+    supplyBurned: state.supplyBurned,
     boostBurned: state.boostBurned,
     boosts: Object.fromEntries(Object.entries(state.boosts).filter(([, until]) => until > now - 86_400_000)),
     recentBoosts: state.recentBoosts.slice(0, RECENT),
