@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { STAGE, TOKEN } from '../config'
-import { isBoosted, ranked, useAgents } from '../lib/agents'
-import { AgentCard, LaunchButtons, Loading, SampleNote, tone, usd } from '../components/ui'
+import { boardUpdatedAt, isBoosted, ranked, useAgents } from '../lib/agents'
+import { AgentCard, LaunchButtons, Loading, SampleNote, UpdatedNote, tone, usd } from '../components/ui'
 import { LeaderboardTable } from './Leaderboard'
 import { type WinnerWeek, nextSnapshot, useWinners } from '../lib/winners'
 
@@ -38,7 +38,7 @@ export default function Home() {
               <Link to="/leaderboard" className="muted">Full leaderboard →</Link>
             </div>
             <LeaderboardTable agents={ranked(agents.filter((a) => a.trader), '7d').slice(0, 10)} range="7d" />
-            <div style={{ marginTop: 12 }}><SampleNote agents={agents} /></div>
+            <div style={{ marginTop: 12 }}><SampleNote agents={agents} /><UpdatedNote at={boardUpdatedAt()} agents={agents} /></div>
           </section>
 
           {!agents.some((a) => a.sample) && <Winners weeks={winners} />}

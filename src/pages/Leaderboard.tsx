@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CATEGORIES, TOKEN, type Category } from '../config'
-import { type Agent, type Range, byFees, inCategory, isBoosted, ranked, useAgents } from '../lib/agents'
-import { Avatar, Loading, RangeChips, SampleNote, Sparkline, pct, tone, usd } from '../components/ui'
+import { type Agent, type Range, boardUpdatedAt, byFees, inCategory, isBoosted, ranked, useAgents } from '../lib/agents'
+import { Avatar, Loading, RangeChips, SampleNote, Sparkline, UpdatedNote, pct, tone, usd } from '../components/ui'
 
 export function LeaderboardTable({ agents, range }: { agents: Agent[]; range: Range }) {
   // Live Baum agents have no return % or equity series yet: leave those columns out rather than show blanks.
@@ -108,6 +108,7 @@ export default function Leaderboard() {
           <p style={{ margin: 0 }}>
             {fees ? 'Yield: liquidity providers ranked by fees earned, from Baum\'s top-LPs board.' : `Ranked by PnL. The top 3 strategies each week split the ${TOKEN.symbol} prize pool.`}
           </p>
+          <div style={{ marginTop: 6 }}><UpdatedNote at={boardUpdatedAt()} agents={agents} /></div>
         </div>
         <RangeChips range={range} onChange={setRange} />
       </div>
