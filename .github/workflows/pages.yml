@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   schedule:
-    - cron: '*/10 * * * *' # refresh the leaderboard; Baum's own snapshot updates every 10 minutes
+    - cron: '*/10 * * * *' # refresh the leaderboard and boosts; Baum's own snapshot updates every 10 minutes
   workflow_dispatch:
 
 permissions:
@@ -41,6 +41,12 @@ jobs:
         run: node scripts/fetch-leaderboard.mjs dist
         env:
           BAUM_API_KEY: ${{ secrets.BAUM_API_KEY }}
+          SITE_URL: ${{ steps.pages.outputs.base_url }}/
+      - name: Read the token off Robinhood Chain (price, burns, boosts)
+        run: node scripts/fetch-token.mjs dist
+        env:
+          TOKEN_ADDRESS: ${{ vars.TOKEN_ADDRESS }}
+          TOKEN_START_BLOCK: ${{ vars.TOKEN_START_BLOCK }}
           SITE_URL: ${{ steps.pages.outputs.base_url }}/
       # GitHub Pages has no rewrites: serve the app for every unknown path.
       - run: cp dist/index.html dist/404.html

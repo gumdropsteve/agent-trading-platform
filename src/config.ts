@@ -6,8 +6,16 @@ export const STAGE = 'Open Beta · Alpha'
 
 export const TOKEN = {
   symbol: import.meta.env.VITE_TOKEN_SYMBOL || 'AGENT',
-  // Set once the token is launched (e.g. on Pons). Until then token actions are disabled.
+  // Set once the token is launched on Baum (Pons, Robinhood Chain). Until then token actions are disabled.
   address: import.meta.env.VITE_TOKEN_ADDRESS || '',
+}
+
+// Where the token lives.
+export const CHAIN = {
+  id: 4663,
+  name: 'Robinhood Chain',
+  rpc: 'https://rpc.mainnet.chain.robinhood.com',
+  explorer: 'https://robinhoodchain.blockscout.com',
 }
 
 export const BAUM = {
