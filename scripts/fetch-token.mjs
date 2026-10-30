@@ -5,12 +5,12 @@
 //
 //   TOKEN_ADDRESS=0x... node scripts/fetch-token.mjs dist
 //
-// A boost is a plain ERC-20 transfer to the dead address with the agent's wallet
-// appended to the calldata (see src/lib/wallet.ts). Token contracts ignore trailing
-// calldata, so the transfer is an ordinary burn; this script reads the tag back off
-// each burn's transaction. Burns with no tag still count toward the burned total,
-// and so do burns through the token's own burn() (a Transfer to 0x0 that lowers
-// totalSupply), which never touch the dead address.
+// A boost is a burn with "ATPB" and the agent's wallet appended to the calldata,
+// either the token's own burn(uint256) (a Transfer to 0x0 that lowers totalSupply;
+// slugs.run sends these) or a plain ERC-20 transfer to the dead address (this site's
+// src/lib/wallet.ts). Token contracts ignore trailing calldata, so either is an
+// ordinary burn; this script reads the tag back off each burn's transaction. Burns
+// with no tag still count toward the burned total.
 //
 // It scans incrementally: the previous run's file on the live site says which block
 // it reached. Without a token address it writes nothing and the site keeps its
@@ -29,7 +29,8 @@ const startBlock = Number(process.env.TOKEN_START_BLOCK || 0)
 const BOOST_PER_HOUR = 100_000
 const DEAD = '0x000000000000000000000000000000000000dead'
 const TAG = '41545042' // "ATPB", then the agent's 20-byte address
-const TRANSFER = '0xa9059cbb'
+const TRANSFER = '0xa9059cbb' // transfer(address,uint256): the tag follows two words
+const BURN = '0x42966c68' // burn(uint256): the tag follows one word
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
 const ZERO = '0x' + '0'.repeat(64)
 // Robinhood Chain allows 10M blocks per eth_getLogs when each filter position has one value.
@@ -107,12 +108,14 @@ try {
       topics: [TRANSFER_TOPIC, null, ZERO],
     }])
     for (const log of burns) state.supplyBurned += Number(BigInt(log.data)) / unit
-    for (const log of logs) {
+    for (const log of [...logs, ...burns].sort((a, b) => Number(BigInt(a.blockNumber) - BigInt(b.blockNumber)) || Number(BigInt(a.logIndex) - BigInt(b.logIndex)))) {
       const tx = await call('eth_getTransactionByHash', [log.transactionHash])
       const input = (tx?.input ?? '').toLowerCase()
-      // Only a direct transfer from the booster's wallet carries the tag where we can read it.
-      if (tx?.to?.toLowerCase() !== token || !input.startsWith(TRANSFER) || input.slice(138, 146) !== TAG) continue
-      const agent = '0x' + input.slice(146, 186)
+      // Only a direct call from the booster's wallet carries the tag where we can read it.
+      if (tx?.to?.toLowerCase() !== token) continue
+      const at0 = input.startsWith(TRANSFER) ? 138 : input.startsWith(BURN) ? 74 : -1
+      if (at0 < 0 || input.slice(at0, at0 + 8) !== TAG) continue
+      const agent = '0x' + input.slice(at0 + 8, at0 + 48)
       const amount = Number(BigInt(log.data)) / unit
       const at = await timeOf(Number(log.blockNumber))
       // Boosts stack: a burn during an active boost extends it.
