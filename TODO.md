@@ -3,7 +3,7 @@
 Each of these is bigger than a quick change. The alpha ships without them; the UI shows them as "coming soon" or disabled.
 
 ## Go live (small, do first)
-- [ ] Create the platform's Baum referral code (13 characters max, for copy links) and set `VITE_BAUM_REF`
+- [x] Referral code: `ASH-LEAF-85`, the Stable code of the platform's Baum wallet (0xa776…D66f). Don't re-roll it in Stable, or every link breaks
 - [x] Baum-side support: `atp-` deep links, the partner-keyed `GET /api/leaderboard`, range-aware PnL, and API keys requiring a confirmed email
 - [ ] Fund the platform's Baum wallet with BAUM and some ETH, confirm an email with `/email`, run `/apikey new`, then set the `BAUM_API_KEY` Actions secret
 - [ ] Confirm the production bot username (`VITE_BAUM_BOT`)
