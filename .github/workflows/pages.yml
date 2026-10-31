@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   schedule:
-    - cron: '*/10 * * * *' # refresh the leaderboard and boosts; Baum's own snapshot updates every 10 minutes
+    - cron: '*/10 * * * *' # boosts and the token every run; the paid leaderboards about every 30 minutes (scripts/fetch-leaderboard.mjs)
   workflow_dispatch:
 
 permissions:
