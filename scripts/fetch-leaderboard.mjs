@@ -1,6 +1,7 @@
 // Fetches Baum's paid leaderboards (traders, and top LPs for the Yield category) at build time and writes it next to the site as
 // static JSON, so the Baum partner key lives only in the GitHub Actions secret and
-// visitors never spend credits. Runs from the Pages workflow every 10 minutes.
+// visitors never spend credits. Runs from the Pages workflow every 10 minutes, but
+// pays for the trader boards only about every 30 (like slugs.run's cache).
 //
 //   BAUM_API_KEY=... node scripts/fetch-leaderboard.mjs dist
 //
@@ -21,8 +22,16 @@ const fresh = {} // trader boards Baum answered this run, by range
 // The LP board (the Yield category) changes slowly: fetched once an hour and on
 // pushes or manual runs, and carried over from the live site in between.
 const lpDue = process.env.GITHUB_EVENT_NAME !== 'schedule' || new Date().getUTCMinutes() < 10
+// The trader boards: fetched once the live copy's Baum snapshot is 25 minutes old.
+// Baum's snapshot is up to 10 minutes old when fetched, so that is about every 30
+// minutes. Going by the copy's age, not the clock, survives GitHub's late crons.
+const TRADERS_EVERY = 25 * 60_000
+const liveAt = live
+  ? await fetch(new URL('data/leaderboard-24h.json', live)).then((r) => (r.ok ? r.json() : null)).then((d) => d?.updatedAt).catch(() => null)
+  : null
+const tradersDue = process.env.GITHUB_EVENT_NAME !== 'schedule' || !liveAt || Date.now() - liveAt >= TRADERS_EVERY
 const boards = [
-  ...['24h', '7d', 'all'].map((range) => ({ board: 'traders', range, file: `leaderboard-${range}.json` })),
+  ...['24h', '7d', 'all'].map((range) => ({ board: 'traders', range, file: `leaderboard-${range}.json`, skip: !tradersDue })),
   ...['24h', '7d', 'all'].map((range) => ({ board: 'lps', range, file: `lps-${range}.json`, skip: !lpDue })),
 ]
 
