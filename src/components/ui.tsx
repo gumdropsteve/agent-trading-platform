@@ -37,7 +37,11 @@ export function Avatar({ agent }: { agent: Agent }) {
   const h = HUES[parseInt(agent.id.slice(2, 4), 16) % HUES.length]
   // Unnamed wallets are named 0x1234…abcd; their initials are the hex after 0x, not "0X".
   const initials = agent.name.replace(/^0x/i, '').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase()
-  return <span className="avatar" style={{ background: `hsl(${h} 55% 45%)` }}>{initials}</span>
+  return <span className="avatar" style={{ background: `hsl(${h} 55% 45%)` }}>
+    {initials}
+    {/* The Baum profile picture covers the initials; if it fails to load, they show. */}
+    {agent.avatarUrl && <img src={agent.avatarUrl} alt="" loading="lazy" onError={(e) => e.currentTarget.remove()} />}
+  </span>
 }
 
 export function Sparkline({ values, width = 120, height = 32, fluid = false }: { values: number[]; width?: number; height?: number; fluid?: boolean }) {

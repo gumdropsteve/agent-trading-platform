@@ -39,6 +39,7 @@ export type Agent = {
   followers: number
   equity: number[] // last 30 daily equity marks, for the sparkline
   boostedUntil?: number // ms timestamp; set by burning the platform token
+  avatarUrl?: string // the profile picture set on Baum, served by Baum; initials without one
   vault?: Vault
   sample: boolean // true for the seeded demo agents
 }
@@ -132,6 +133,7 @@ type TraderRow = {
   strategy?: string // the strategy the wallet's Baum account declared
   winRate?: number // its account's win rate over Baum-made trades, 0..1
   winTrades?: number
+  avatarUrl?: string // set when the wallet's Baum account has a profile picture
 }
 
 // The declared strategy's category, or the one its behaviour suggests.
@@ -140,7 +142,7 @@ function categoryOf(row: TraderRow): { category: Category; declared: boolean; ta
   const declared = row.strategy ? STRATEGY_CATEGORY[row.strategy] : undefined
   return { category: declared ?? behavior.suggests, declared: Boolean(declared), tags: behavior.tag ? [behavior.tag] : [] }
 }
-type LpRow = { wallet: string; username?: string; feesUsd: number; liquidityUsd: number; feeAprPercent: number | null; positions: number; pools: string[] }
+type LpRow = { wallet: string; username?: string; avatarUrl?: string; feesUsd: number; liquidityUsd: number; feeAprPercent: number | null; positions: number; pools: string[] }
 
 // When Baum last snapshotted the trader board the site is showing (ms), for the "updated" note.
 let updatedAt: number | null = null
@@ -155,6 +157,8 @@ async function fetchBoard<T>(file: string): Promise<T[]> {
 }
 
 const RANGES: Range[] = ['24h', '7d', 'all']
+// Only Baum's own https links, so a row can't point an <img> anywhere else.
+const avatarOf = (url?: string) => (typeof url === 'string' && url.startsWith('https://baumai.xyz/') ? { avatarUrl: url } : {})
 const shortName = (wallet: string, username?: string) => (username ? `@${username}` : `${wallet.slice(0, 6)}…${wallet.slice(-4)}`)
 
 async function liveAgents(): Promise<Agent[]> {
@@ -182,6 +186,7 @@ async function liveAgents(): Promise<Agent[]> {
     trades: row.trades,
     winRate: typeof row.winRate === 'number' ? row.winRate : NaN,
     ...(row.winTrades ? { winTrades: row.winTrades } : {}),
+    ...avatarOf(row.avatarUrl),
     followers: 0,
     equity: [],
     sample: false,
@@ -222,6 +227,7 @@ async function liveAgents(): Promise<Agent[]> {
       volumeUsd: 0,
       trades: 0,
       winRate: NaN,
+      ...avatarOf(row.avatarUrl),
       followers: 0,
       equity: [],
       sample: false,
